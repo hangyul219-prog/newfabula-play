@@ -670,7 +670,7 @@ em.lk{color:#ff9a8a!important}
 .typing b{font-family:var(--krd);font-weight:800;color:var(--gold2)}.typing span{color:var(--parch2);font-style:italic}
 .typing i{font-style:normal;opacity:.15;animation:typd 1.4s infinite}.typing i:nth-of-type(2){animation-delay:.2s}.typing i:nth-of-type(3){animation-delay:.4s}
 @keyframes typd{30%{opacity:1}}
-.stage .typing{position:absolute;left:0;bottom:calc(28% + 6px);z-index:3;padding:6px 16px;font-size:24px;background:rgba(4,7,14,.72);border-left:2px solid var(--gold2)}.stage .typing:empty{display:none}
+.stage .typing{position:absolute;left:0;bottom:calc(28% + 6px);z-index:3;padding:6px 16px;font-size:24px;background:rgba(4,7,14,.72);border-left:2px solid var(--gold2)}.stage .typing:empty{display:none}#stage.saying .typing{bottom:calc(var(--stinh,56px) + 28% + 6px)}
 .slot .ph{width:70%;height:70%;border:1px dashed rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:20px;background:rgba(0,0,0,.25)}
 .dlg{position:absolute;left:0;right:0;bottom:0;min-height:28%;padding:3.5% 9% 3%;background:linear-gradient(180deg,transparent,rgba(4,7,14,.82) 38%,rgba(4,7,14,.92));color:#fff;font-size:clamp(14px,1.7vw,22px);line-height:1.65;text-shadow:0 1px 3px #000}
 .dlg .who{display:flex;align-items:center;gap:10px;margin-bottom:.3em;font-family:var(--krd);font-weight:800;font-size:clamp(14px,1.45vw,19px);color:var(--gold2)}
@@ -3703,7 +3703,8 @@ function gearAccuracy(c,kind,w,count=1){let n=0;for(const s of gearTexts(c)){
   if(kind==='atk'&&/^명중 판정에 \+1/.test(s))n++;
   if(kind==='atk'&&w?.cat==='단검'&&/^단검으로 하는 명중 판정에 \+1/.test(s))n++;
   if(kind==='atk'&&count>1&&/^다중 공격을 할 때 명중 판정에 \+2/.test(s))n+=2;
-}return n}
+}if(kind==='spell'&&w?.off){const e=effectiveEquip(c);if([e.main,e.off].some(x=>x?.name&&x.cat==='비전'))n+=2*gearRawSkill(c,'마법 포격')}// 마법 포격: arcane weapon equipped
+return n}
 function gearBonus(c,kind,w,target){let n=0;for(const it of gearItems(c)){
   const s=it.sp;
   if(kind==='spell'&&/자신이 시전(?:한|하는) 주문이 추가 피해 5/.test(s))n+=5;
@@ -4165,8 +4166,8 @@ function dockHTML(H,F){const u=[...H,...F].find(x=>x.k===SEL);const C=P.combat;c
     :(()=>{const me=CH[myPcId()];if(!me)return'';const inP=P.party.includes(me.id);return`<div><div class="dk-h"><b>내 캐릭터</b><i>${esc(me.name)}</i></div><div class="tools">
       ${inP?`<button class="btn sm" data-act="leave" data-id="${me.id}">전장에서 빠지기</button>`:`<button class="btn sm gold" data-act="joinme">전장에 참가</button>`}
       ${inP&&C.enemies.length?`<button class="btn sm" data-act="initroll">선제권 판정</button>`:''}</div></div>`})();
-  const clocks=`<div><div class="dk-h"><b>시계</b><i>CLOCKS</i><span class="sp"></span>${GM?'<button class="btn x" data-act="addclock"><i class="gi" data-ic="clock"></i> 추가</button>':''}</div><div class="clocks">
-    ${P.clocks.map((k,i)=>`<div class="clock"><div class="face" data-act="${GM?'tick':''}" data-i="${i}" title="${GM?'클릭: 한 칸 채우기 / Shift+클릭·우클릭: 한 칸 줄이기':''}" style="background:${clockBg(k)}"></div><b>${esc(k.name)}</b><span class="muted">${k.filled}/${k.size}</span>${GM?`<button class="btn x" data-act="untick" data-i="${i}" title="한 칸 줄이기"${k.filled?'':' disabled'}>−1</button><button class="btn x" data-act="delclock" data-i="${i}">삭제</button>`:''}</div>`).join('')||'<span class="muted">진척이나 위기를 시계로 표시해요.</span>'}</div></div>`;
+  const clocks=`<div><div class="dk-h"><b>시계</b><i>CLOCKS</i><span class="sp"></span><button class="btn x" data-act="addclock"><i class="gi" data-ic="clock"></i> 추가</button></div><div class="clocks">
+    ${P.clocks.map((k,i)=>`<div class="clock"><div class="face" data-act="tick" data-i="${i}" title="클릭: 한 칸 채우기 / Shift+클릭·우클릭: 한 칸 줄이기" style="background:${clockBg(k)}"></div><b>${esc(k.name)}</b><span class="muted">${k.filled}/${k.size}</span><button class="btn x" data-act="untick" data-i="${i}" title="한 칸 줄이기"${k.filled?'':' disabled'}>−1</button><button class="btn x" data-act="delclock" data-i="${i}">삭제</button></div>`).join('')||'<span class="muted">진척이나 위기를 시계로 표시해요.</span>'}</div></div>`;
   return panel+tools+clocks}
 function unitPanel(u){const o=u.o,k=u.k,acted=P.combat.acted[k];const aff=u.pc?[]:Object.entries(o.aff||{}).filter(([,v])=>v);
   const stats=u.pc?`<span>방어 <b>${u.d.def}</b></span><span>마방 <b>${u.d.mdef}</b></span><span>선제 <b>${u.d.init>=0?'+':''}${u.d.init}</b></span><span>${gi('ip')}IP <b>${u.ip}/${u.maxIp}</b></span><span>${Object.keys(ATTR).map(a=>`${gi(a)}${AB[a]} d${u.d.cur[a]}`).join(' · ')}</span>`
@@ -4751,9 +4752,9 @@ function actOptions(u,act){if(act==='atk'){if(u.pc){const e=effectiveEquip(u.o);
   return[]}
 // multi(n): weapon/attack base + optional 칼날 폭풍 (melee) / 탄막 (ranged) for 10 MP, capped at 다중(3)
 function multiSkill(u,o){if(!u.pc||!o)return'';const ranged=o.range==='원거리';const n=ranged?'탄막':'칼날 폭풍';return u.d.sl(n)?n:''}
-function atkMulti(u,o){const base=Math.max(1,+AF.multi||o?.multi||1);return AF.mskill?Math.min(3,Math.max(2,base+1)):Math.min(3,base)}
-function multiRow(u,o){const sk=multiSkill(u,o);return`<div class="row"><span class="muted">다중</span><select class="sel" data-an="multi" style="width:auto">${[1,2,3].map(n=>`<option value="${n}"${(+AF.multi||o.multi||1)===n?' selected':''}>${n===1?'단일 대상':'다중('+n+')'}</option>`).join('')}</select>
-  ${sk?`<label class="ck"><input type="checkbox" data-ab="mskill" data-sk="${sk}"${AF.mskill?' checked':''}>${sk} 사용 (MP 10 · 다중+1)</label>`:''}<span class="muted">→ 대상 최대 ${atkMulti(u,o)}명 · 명중 판정 1회로 각 대상의 방어도와 비교</span></div>`}// step menu (JRPG convention): command → option → target on the battlefield → result; ◀/Esc steps back
+function atkMulti(u,o){if(AF.dual)return 1;const base=Math.max(1,+AF.multi||o?.multi||1);return AF.mskill?Math.min(3,Math.max(2,base+1)):Math.min(3,base)}
+function multiRow(u,o){const sk=multiSkill(u,o);return`<div class="row"><span class="muted">다중</span><select class="sel" data-an="multi" style="width:auto"${AF.dual?' disabled':''}>${[1,2,3].map(n=>`<option value="${n}"${(+AF.multi||o.multi||1)===n?' selected':''}>${n===1?'단일 대상':'다중('+n+')'}</option>`).join('')}</select>
+  ${sk?`<label class="ck"><input type="checkbox" data-ab="mskill" data-sk="${sk}"${AF.mskill?' checked':''}>${sk} 사용 (MP 10 · 다중+1)</label>`:''}<label class="ck" title="공격을 따로 두 번 — 각 공격은 다중을 잃고, 피해 계산 시 HR을 0으로"><input type="checkbox" data-ab="dual"${AF.dual?' checked':''}>쌍수 (HR 0 · 단일 대상)</label><span class="muted">→ 대상 최대 ${atkMulti(u,o)}명 · 명중 판정 1회로 각 대상의 방어도와 비교</span></div>`}// step menu (JRPG convention): command → option → target on the battlefield → result; ◀/Esc steps back
 const OPT_ACTS=['atk','spell','skill','item'];
 const tMax=(u,o)=>AF.x?.one||['hinder','study','guard','item'].includes(AF.act)?1:AF.act==='atk'?atkMulti(u,o):(o?.multi||1);
 /* free / extra actions granted by skills (rule text quoted in note). t: start = before round 1 (개시 전 행동), turn = on your turn, react = after a trigger.
@@ -4890,8 +4891,8 @@ function actRoll(){if(AF.busy||AF.res||AF.finished)return;const u=unitOf(AF.k);i
     if(AF.act==='spell'&&!o.off){AF.res={msg:`${o.n} ${o.free?'사용':'시전'}${o.mp?` (MP −${o.mp*(o.perT?tg.length:1)})`:''}${o.ip?` (IP −${o.ip})`:''}${tg.length?` — 대상: ${tg.map(t=>t.name).join(', ')}`:''}${o.d?`<br><span class="muted">${esc(o.d)}</span>`:''}${!o.heal&&!o.cleanse?'<br><span class="muted">설명에 따른 효과는 직접 적용해 주세요.</span>':''}${o.heal?`<br>각 대상 HP ${o.heal} 회복`:''}`,apply:true,applyLabel:o.heal?'회복 적용':'완료',heal:o.heal,cleanse:o.cleanse,tg:tg.map(t=>t.k)};logText(u.name,`${o.n} 시전 → ${tg.map(t=>t.name).join(', ')}`);return renderAct()}
     if(AF.act==='atk'){const mx=atkMulti(u,o);if(tg.length>mx)return toast(`대상은 최대 ${mx}명이에요`,1);if(AF.mskill&&!pre){const cost=AF.mskill==='탄막'&&gearHas(u.o,/탄막.*MP 비용이 절반/)?5:10;if((+u.o.mp||0)<cost)return toast('MP가 부족해요 ('+cost+')',1);u.o.mp-=cost;u.pc?saveC():saveP();logText(u.name,`${AF.mskill} — MP −${cost}, 다중(${mx})`)}}
     const fxs=extraFx(u).filter(x=>AF.fx?.includes(x.src+'|'+x.n)),fxd=fxs.reduce((a,x)=>a+x.dmg,0);if(fxs.length&&!pre)logText(u.name,`추가 효과 — ${fxs.map(x=>x.n+(x.dmg?` +${x.dmg}`:'')).join(', ')}`);
-    const e=roll(AF.ov?.[0]||o.a1,AF.ov?.[1]||o.a2,(+o.acc||0)+(+AF.mod||0)+(u.pc?gearAccuracy(u.o,AF.act,o,tg.length):0),`${o.n}${AF.act==='spell'?' (마법 판정)':' 공격'}`,tg.length===1&&seen(tg[0])?(o.vs==='mdef'?tg[0].mdef:tg[0].def):null);
-    const rows=tg.map(t=>{const hitOpt=u.pc?gearTargetOptions(u.o,o,t,AF.act,tg.length):{...o};hitOpt.sourceKind=AF.act;const dv=hitOpt.vs==='dex'?t.die('dex'):hitOpt.vs==='mdef'?t.mdef:t.def,hit=!e.fumble&&(e.crit||e.total>=dv);const base=o.dmg!=null?Math.max(0,(AF.x?.hr0?0:e.hr)+(+o.dmg||0)+(+AF.extra||0)+fxd+(u.pc?heroDamage(u.o,AF.act,o,tg.length,AF.act==='atk'?atkMulti(u,o):1)+gearBonus(u.o,AF.act,o,t,tg.length,AF.act==='atk'?atkMulti(u,o):1):0)):0;const pv=previewDmg(t,base,o.type,hitOpt);
+    const e=roll(AF.ov?.[0]||o.a1,AF.ov?.[1]||o.a2,(+o.acc||0)+(+AF.mod||0)+(u.pc?gearAccuracy(u.o,AF.act,o,tg.length):0),`${o.n}${AF.act==='spell'?' (마법 판정)':AF.dual?' 공격 (쌍수)':' 공격'}`,tg.length===1&&seen(tg[0])?(o.vs==='mdef'?tg[0].mdef:tg[0].def):null);
+    const rows=tg.map(t=>{const hitOpt=u.pc?gearTargetOptions(u.o,o,t,AF.act,tg.length):{...o};hitOpt.sourceKind=AF.act;const dv=hitOpt.vs==='dex'?t.die('dex'):hitOpt.vs==='mdef'?t.mdef:t.def,hit=!e.fumble&&(e.crit||e.total>=dv);const base=o.dmg!=null?Math.max(0,(AF.x?.hr0||AF.act==='atk'&&AF.dual?0:e.hr)+(+o.dmg||0)+(+AF.extra||0)+fxd+(u.pc?heroDamage(u.o,AF.act,o,tg.length,AF.act==='atk'?atkMulti(u,o):1)+gearBonus(u.o,AF.act,o,t,tg.length,AF.act==='atk'?atkMulti(u,o):1):0)):0;const pv=previewDmg(t,base,o.type,hitOpt);
       return{k:t.k,name:t.name,hit,vsTxt:`${hitOpt.vs==='dex'?'민첩':hitOpt.vs==='mdef'?'마방':'방어'} ${seen(t)?dv:'?'}`,dmg:base,dmgTxt:o.dmg!=null?`${base} ${o.type}${seen(t)?pv.note:''}`:'명중',type:o.type,options:hitOpt}});
     for(const r of rows)if(!r.hit)FXB.emit({type:'vfx',k:r.k,n:'miss'});
     AF.res={e,rows,msg:o.dmg==null?o.d+' — 명중한 대상에 설명의 효과를 직접 적용해 주세요.':'',apply:rows.some(r=>r.hit),applyLabel:o.dmg!=null?'피해 적용':'명중 효과 적용',onHitText:u.pc?(AF.act==='spell'?gearTexts(u.o).filter(s=>/공격\(공격\) 주문으로/.test(s)).join('\n'):o.sp||''):''};return renderAct()}
@@ -4947,13 +4948,13 @@ document.addEventListener('click',ev=>{const s=ev.target.closest('#units .spr.tg
 document.addEventListener('mouseover',e=>{const b=e.target.closest('.actx .axo'),i=byId('axInfo');if(b&&i)i.textContent=b.dataset.d||'설명이 없어요.'});
 document.addEventListener('click',ev=>{const box=ev.target.closest('.act-box');if(!box)return;const t=ev.target.closest('[data-ak],[data-ao],[data-at],[data-as],[data-ai],[data-at2],[data-ar],[data-ax],[data-asp],[data-afs]');if(!t)return;
   if(AF.busy||AF.finished)return;if(t.dataset.ax!=null){const x=XACT[+t.dataset.ax],u=unitOf(AF.k);if(!x||!u)return;// a failed condition only warns: forcing it is allowed
-    if(x.scan)AF.step='scan';else{AF.x=x;AF.xpaid=0;AF.act=x.acts[0];AF.opt=0;AF.targets=[];AF.res=null;AF.roll=false;AF.multi=0;AF.mskill='';AF.step=x.acts.length>1?'cmd':OPT_ACTS.includes(AF.act)?'opt':'tgt'}SFX.play('tick')}
+    if(x.scan)AF.step='scan';else{AF.x=x;AF.xpaid=0;AF.act=x.acts[0];AF.opt=0;AF.targets=[];AF.res=null;AF.roll=false;AF.multi=0;AF.mskill='';AF.dual=false;AF.step=x.acts.length>1?'cmd':OPT_ACTS.includes(AF.act)?'opt':'tgt'}SFX.play('tick')}
   else if(t.dataset.asp!=null){const u=unitOf(AF.k),s=u?.o.sprites?.[+t.dataset.asp];if(s&&u.pc&&s.img!==u.o.sprite){u.o.sprite=s.img;saveC();logText(u.name,`전투 스프라이트 — ${s.n||'모습 '+(+t.dataset.asp+1)}`);renderCombat()}}
   else if(t.dataset.afs!=null){const s=unitOf(AF.k)?.o.skills?.[+t.dataset.afs];if(s)AF.text=AF.text===s.n?'':s.n}
   else if(t.dataset.ar==='scan'){return xactScan()}
   else if(t.dataset.ar==='xinit'){if(P.combat.inited&&!GM)return;initRoll()}
-  else if(t.dataset.ak){if(isLocked(unitOf(AF.k)?.o,t.dataset.ak)&&!AF.xm)return;AF.act=t.dataset.ak;AF.opt=0;AF.targets=[];AF.res=null;AF.roll=false;AF.multi=0;AF.mskill='';AF.step=OPT_ACTS.includes(AF.act)?'opt':'tgt';SFX.play('tick')}
-  else if(t.dataset.ao!=null){const skill=AF.act==='skill'&&actorSkills(unitOf(AF.k).o)[+t.dataset.ao];if(skill?.gear){return heroDialog(unitOf(AF.k).o.id,skill.n,null,skill.gear)}if(skill?.heroic){return heroDialog(unitOf(AF.k).o.id,skill.n,n=>{AF.res={msg:'영웅 기술 「'+n+'」 적용',apply:false};renderAct()})}AF.opt=+t.dataset.ao;AF.targets=[];AF.res=null;AF.multi=0;AF.mskill='';AF.step='tgt';SFX.play('tick')}
+  else if(t.dataset.ak){if(isLocked(unitOf(AF.k)?.o,t.dataset.ak)&&!AF.xm)return;AF.act=t.dataset.ak;AF.opt=0;AF.targets=[];AF.res=null;AF.roll=false;AF.multi=0;AF.mskill='';AF.dual=false;AF.step=OPT_ACTS.includes(AF.act)?'opt':'tgt';SFX.play('tick')}
+  else if(t.dataset.ao!=null){const skill=AF.act==='skill'&&actorSkills(unitOf(AF.k).o)[+t.dataset.ao];if(skill?.gear){return heroDialog(unitOf(AF.k).o.id,skill.n,null,skill.gear)}if(skill?.heroic){return heroDialog(unitOf(AF.k).o.id,skill.n,n=>{AF.res={msg:'영웅 기술 「'+n+'」 적용',apply:false};renderAct()})}AF.opt=+t.dataset.ao;AF.targets=[];AF.res=null;AF.multi=0;AF.mskill='';AF.dual=false;AF.step='tgt';SFX.play('tick')}
   else if(t.dataset.at)toggleTarget(t.dataset.at)
   else if(t.dataset.as){AF.status=t.dataset.as}
   else if(t.dataset.ai!=null){AF.item=+t.dataset.ai;AF.targets=[];AF.step='tgt';SFX.play('tick')}
@@ -4985,7 +4986,7 @@ document.addEventListener('change',ev=>{const t=ev.target;if(!t.closest('.act-bo
   if(t.dataset.aa!=null){AF.attr[+t.dataset.aa]=t.value}
   if(t.dataset.axa!=null){AF.ov=AF.ov||['',''];AF.ov[+t.dataset.axa]=t.value}
   if(t.dataset.adty!=null){AF.dty=t.value}
-  if(t.dataset.ab){AF[t.dataset.ab]=t.dataset.sk?(t.checked?t.dataset.sk:''):t.checked;if(t.dataset.ab==='roll'||t.dataset.ab==='mskill'){AF.targets=AF.targets.slice(0,atkMulti(unitOf(AF.k),actOptions(unitOf(AF.k),'atk')[AF.opt]));renderAct()}}
+  if(t.dataset.ab){AF[t.dataset.ab]=t.dataset.sk?(t.checked?t.dataset.sk:''):t.checked;if(t.dataset.ab==='roll'||t.dataset.ab==='mskill'||t.dataset.ab==='dual'){AF.targets=AF.targets.slice(0,atkMulti(unitOf(AF.k),actOptions(unitOf(AF.k),'atk')[AF.opt]));renderAct()}}
   if(t.dataset.an==='multi'){AF.multi=+t.value;AF.targets=AF.targets.slice(0,atkMulti(unitOf(AF.k),actOptions(unitOf(AF.k),'atk')[AF.opt]));return renderAct()}
   if(AF.busy||AF.res)return;if(t.dataset.an){const L={mod:[-30,30],extra:[-99,999],dl:[0,99],mpc:[0,999],hpc:[0,999]}[t.dataset.an]||[-999,999];AF[t.dataset.an]=clamp(Math.round(+t.value||0),...L);if(+t.value!==AF[t.dataset.an])t.value=AF[t.dataset.an]}// keep typed numbers in a sane range
   if(t.dataset.ac){AF.clock=+t.value}
@@ -5331,7 +5332,7 @@ document.addEventListener('click',async ev=>{const dt=ev.target.closest('[data-d
   case'pinparty':{const p=P.map.pins.find(x=>x.id===t.dataset.id);P.map.party={x:p.x,y:p.y};saveP();logText('GM',`파티가 '${p.name}'(으)로 이동`);renderMap();break}
   case'pindel':if(confirm('이 장소를 지울까요?')){P.map.pins=P.map.pins.filter(x=>x.id!==t.dataset.id);V.pop=null;saveP();renderMap()}break;
   }});
-document.addEventListener('contextmenu',ev=>{const f=ev.target.closest('.clock .face');if(f&&GM){ev.preventDefault();const k=P.clocks[+f.dataset.i];k.filled=Math.max(0,k.filled-1);saveP();renderCombat()}});
+document.addEventListener('contextmenu',ev=>{const f=ev.target.closest('.clock .face');if(f){ev.preventDefault();const k=P.clocks[+f.dataset.i];k.filled=Math.max(0,k.filled-1);saveP();renderCombat()}});
 document.addEventListener('change',ev=>{const t=ev.target;
   if(t.id==='chatme'){ss.set('fu.chat.me',t.value);renderDrawer();return}
   if(t.id==='chatnick'){ss.set('fu.chat.nick',t.value.trim());return}
