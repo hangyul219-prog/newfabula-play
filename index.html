@@ -3089,7 +3089,7 @@ const NET={room:'',db:null,on:false,live:false,last:{},skew:0,
     if(code===this.room&&this.on)return;this.leave();localStorage.setItem('fu.room',code);this.badge();if(!code)return toast('오프라인으로 전환했어요');
     if(typeof firebase==='undefined')return toast('Firebase를 불러오지 못했어요. 인터넷 연결을 확인하세요.',1);
     if(!FB_CFG){this.room='';this.badge();fbGate(true,()=>this.join(code));return}
-    try{if(!this.db){firebase.apps.length||firebase.initializeApp(FB_CFG);if(!firebase.auth().currentUser)await firebase.auth().signInAnonymously();this.db=firebase.database();
+    try{if(!this.db){firebase.apps.length||firebase.initializeApp(FB_CFG);if(!firebase.auth().currentUser)try{await firebase.auth().signInAnonymously()}catch(e){console.warn("anonymous sign-in failed (needed only for locked rules):",e.code||e.message)}this.db=firebase.database();
         this.db.ref('.info/connected').on('value',s=>{this.connected=!!s.val();this.live=this.connected&&!!this.room;this.badge()});this.db.ref('.info/serverTimeOffset').on('value',s=>{this.skew=+s.val()||0})}
       this.room=code;this.on=true;this.live=!!this.connected;if(typeof MEDIA_MISSING!=='undefined')MEDIA_MISSING.clear();this.badge();
       const B0=LS.get('fu.net.base',{});let pending=SHARED_KEYS.length;
