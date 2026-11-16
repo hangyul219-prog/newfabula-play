@@ -3698,6 +3698,18 @@ function resourceMax(c,type){const cl=c.classes||[],sl=n=>cl.flatMap(k=>k.skills
  if(type==='hp')return Math.max(1,(+c.level||0)+5*(+c.attr.mig||0)+5*cnt('hp')+3*sl('요새')+(+c.bonus?.hp||0)+(hasHero(c,'추가 HP')?(c.level>=40?20:10):0)+ring+(gearHasName(c,'오리할콘')?10:0));
  return Math.max(0,(+c.level||0)+5*(+c.attr.wlp||0)+5*cnt('mp')+3*sl('집중')+(+c.bonus?.mp||0)+(hasHero(c,'추가 MP')?(c.level>=40?20:10):0)+ring);
 }
+// manual max HP/MP: stored in c.bonus.hp/mp as the delta from the rule value; raised/lowered maxima are colored (mx-up / mx-dn)
+function mxCls(c,k){const v=+c?.bonus?.[k]||0;return v>0?' mx-up':v<0?' mx-dn':''}
+function mxTip(c,k){const v=+c?.bonus?.[k]||0;return v?` title="규칙 계산값 ${resourceMax(c,k)-v} · 수동 ${v>0?'+':''}${v}"`:''}
+function mxSet(c,k,v){c.bonus=c.bonus&&typeof c.bonus==='object'?c.bonus:{};const old=resourceMax(c,k),full=(+c[k]||0)===old;c.bonus[k]=0;
+ if(v!==null){if(!Number.isFinite(v))return;c.bonus[k]=Math.round(clamp(v,k==='hp'?1:0,99999))-resourceMax(c,k)}
+ const m=resourceMax(c,k);if(full||(+c[k]||0)>m)c[k]=m;c.updated=Date.now()}
+function mxMax(c,k,max){if(k!=='hp'&&k!=='mp')return max;const id=String(c.id).replace(/"/g,'');
+ return `<input class="mxin${mxCls(c,k)}" type="number" min="${k==='hp'?1:0}" data-mx="${k}" data-id="${id}" value="${max}"${mxTip(c,k)} aria-label="최대 ${k.toUpperCase()} 직접 입력">`+((+c.bonus?.[k]||0)?`<button type="button" class="mxr" data-mxr="${k}" data-id="${id}" title="규칙 계산값으로 되돌리기">기본값</button>`:'')}
+document.head.insertAdjacentHTML('beforeend','<style>.mxin{width:3.4em;padding:0 1px;margin:0;background:transparent;border:0;border-bottom:1px dashed currentColor;color:inherit;font:inherit;font-size:inherit;text-align:left;-moz-appearance:textfield;appearance:textfield}.mxin::-webkit-inner-spin-button,.mxin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}.mxin:focus{outline:1px solid currentColor;border-bottom-color:transparent}.mx-up,.mxin.mx-up{color:#5fdc8f!important;font-weight:700}.mx-dn,.mxin.mx-dn{color:#ff6b6b!important;font-weight:700}.mxr{margin-left:4px;padding:0 5px;font-size:10px;line-height:16px;border:1px solid currentColor;border-radius:3px;background:transparent;color:inherit;opacity:.75;cursor:pointer;vertical-align:middle}.mxr:hover{opacity:1}</style>');
+document.addEventListener('change',ev=>{const t=ev.target;if(!t.dataset?.mx)return;const c=mxChar(t.dataset.id);if(!c)return;mxSet(c,t.dataset.mx,t.value===''?null:+t.value);mxDone()});
+document.addEventListener('click',ev=>{const t=ev.target.closest?.('[data-mxr]');if(!t)return;ev.preventDefault();ev.stopPropagation();const c=mxChar(t.dataset.id);if(!c)return;mxSet(c,t.dataset.mxr,null);mxDone()},true);
+const mxChar=id=>CH[id],mxDone=()=>{saveC();render()};
 function gearImmune(c,k){const n=Object.keys(gearStatusNames).find(n=>gearStatusNames[n]===k);return gearTexts(c).some(s=>{
   if(s.includes('위기 상태인 동안')&&c.hp>Math.floor(resourceMax(c,'hp')/2))return false;
   return /모든 상태 이상에 면역/.test(s)||n&&new RegExp(n+'에 면역').test(s);
@@ -4168,8 +4180,8 @@ function hudHTML(H){const C=P.combat,nt=nextTurn(),E=C.edge;const pips=n=>`<span
     return`<div class="band${FXDATA[(document.documentElement.dataset.theme||'metaphor')+'/party-frame']?' fr':''}${SEL===u.k?' sel':''}${P.combat.acted[u.k]?' acted':''}${u.hp<=0?' down':''}${cr?' cr':''}" data-sel="${u.k}">
     <div class="face"${u.face?` data-img="${u.face}"`:''}>${u.face?'':esc((u.name||'?')[0])}</div>
     <div><div class="nm"><span class="nmt"><span class="nmi">${esc(u.name)}<small>Lv${u.lv}</small></span></span><em>${gi('fp')}FP ${u.o.fp}</em></div>
-    <div class="bv"><span>${gi('hp')}HP</span><div class="bb hp"><i style="width:${p(u.hp/u.max*100)}%"></i></div><b>${u.hp}<small>/${u.max}</small></b>
-    <span>${gi('mp')}MP</span><div class="bb mp"><i style="width:${p(u.mp/u.maxMp*100)}%"></i></div><b>${u.mp}<small>/${u.maxMp}</small></b></div>
+    <div class="bv"><span>${gi('hp')}HP</span><div class="bb hp"><i style="width:${p(u.hp/u.max*100)}%"></i></div><b>${u.hp}<small class="${u.pc?mxCls(u.o,'hp'):''}">/${u.max}</small></b>
+    <span>${gi('mp')}MP</span><div class="bb mp"><i style="width:${p(u.mp/u.maxMp*100)}%"></i></div><b>${u.mp}<small class="${u.pc?mxCls(u.o,'mp'):''}">/${u.maxMp}</small></b></div>
     ${sts?`<div class="chs">${sts}</div>`:''}</div></div>`}).join('')}</div>`}
 function dockHTML(H,F){const u=[...H,...F].find(x=>x.k===SEL);const C=P.combat;const avail=Object.values(CH).filter(c=>!P.party.includes(c.id));
   const panel=u?unitPanel(u):`<div class="ap"><div class="dk-h"><b>대상 선택</b><i>SELECT</i></div><p class="muted" style="margin:0">${GM?'전장의 캐릭터나 하단 상태 띠를 눌러 피해·회복·상태를 처리해요.':'전장의 캐릭터를 눌러 정보를 볼 수 있어요.'}</p>
@@ -4578,7 +4590,7 @@ function renderGM(){if(!GM){tab='combat';return render()}
   <section class="gmc"><h4>파티 현황<i>PARTY</i><span class="sp"></span><button class="btn sm" data-g="restAll">파티 휴식</button><button class="btn sm" data-g="restTent"><i class="gi" data-ic="마법 텐트"></i> 텐트 야영 (IP 4)</button></h4>
    <table class="ptab"><tr><th>이름</th><th>${gi('hp')}HP</th><th>${gi('mp')}MP</th><th>${gi('ip')}IP</th><th>${gi('fp')}FP</th><th>EXP</th></tr>
    ${party.map(c=>{const d=derive(c);return`<tr><td><span class="pf"${c.portrait?` style="background-image:url()" data-img="${c.portrait}"`:''}>${c.portrait?'':esc(c.name[0])}</span>${esc(c.name)} <small class="muted">Lv${c.level}</small>${Object.entries(STATUS).filter(([k])=>c.status?.[k]).map(([k,v])=>`<em class="chip on ro" style="margin-left:3px">${gi(k)}${v[0]}</em>`).join('')}</td>
-    <td>${bar(c.hp??d.maxHp,d.maxHp,'var(--hp)')}${c.hp??d.maxHp}/${d.maxHp}</td><td>${bar(c.mp??d.maxMp,d.maxMp,'var(--mp)')}${c.mp??d.maxMp}</td><td>${c.ip??d.maxIp}/${d.maxIp}</td>
+    <td>${bar(c.hp??d.maxHp,d.maxHp,'var(--hp)')}${c.hp??d.maxHp}/${mxMax(c,'hp',d.maxHp)}</td><td>${bar(c.mp??d.maxMp,d.maxMp,'var(--mp)')}${c.mp??d.maxMp}/${mxMax(c,'mp',d.maxMp)}</td><td>${c.ip??d.maxIp}/${d.maxIp}</td>
     <td><button class="btn x" data-g="fp" data-id="${c.id}" data-v="-1"><i class="gi" data-ic="minus"></i></button>${c.fp}<button class="btn x" data-g="fp" data-id="${c.id}" data-v="1"><i class="gi" data-ic="plus"></i></button></td><td>${+c.exp||0}/10${c.exp>=10?'<span class="lvup">LV UP</span>':''}</td></tr>`}).join('')||'<tr><td colspan="6" class="muted">전투 탭에서 아군을 참가시키면 여기에 보여요.</td></tr>'}</table>
    <div class="row" style="margin-top:10px"><span class="muted">경험치 지급</span><input class="in" id="xpN" type="number" min="1" max="99999" step="1" value="1" style="max-width:70px"><input class="in" id="xpWhy" placeholder="사유 (예: 세션 종료, 빌런 격퇴)"><button class="btn gold" data-g="xp">파티 전원 지급</button></div>
    <p class="muted" style="margin:4px 0 0">룰북: 세션마다 기본 XP, 빌런 퇴장·목표 달성 등에 추가. 10 XP마다 레벨업.</p></section>
@@ -4724,7 +4736,7 @@ function pcPick(){byId('pcpick')?.remove();const own=myChars(),th=document.docum
     d.querySelector('.pp-c.on')?.scrollIntoView({block:'nearest',inline:'nearest'});
     info.innerHTML=`<h3>${esc(c.name)}</h3><p class="pp-lv"><b>LV ${c.level}</b><span>${cls(c)}</span></p>${c.identity?`<p class="pp-id">${esc(c.identity)}</p>`:''}
      ${c.theme||c.origin?`<dl>${c.theme?`<dt>테마</dt><dd>${esc(c.theme)}</dd>`:''}${c.origin?`<dt>출신</dt><dd>${esc(c.origin)}</dd>`:''}</dl>`:''}
-     <div class="pp-bars"><i style="--v:${dv.maxHp?hp/dv.maxHp:0}"><em>HP</em><span>${hp} / ${dv.maxHp}</span></i><i class="mp" style="--v:${dv.maxMp?mp/dv.maxMp:0}"><em>MP</em><span>${mp} / ${dv.maxMp}</span></i></div>
+     <div class="pp-bars"><i style="--v:${dv.maxHp?hp/dv.maxHp:0}"><em>HP</em><span>${hp} / <b class="${mxCls(c,'hp')}">${dv.maxHp}</b></span></i><i class="mp" style="--v:${dv.maxMp?mp/dv.maxMp:0}"><em>MP</em><span>${mp} / <b class="${mxCls(c,'mp')}">${dv.maxMp}</b></span></i></div>
      <div class="pp-dice">${Object.keys(ATTR).map(k=>`<span><em>${AB[k]}</em>d${c.attr?.[k]||6}</span>`).join('')}</div>
      ${P.party.includes(c.id)?'':'<p class="pp-note">전투 미참가</p>'}<button class="pp-go" data-pc="${c.id}">이 영웅으로 결정</button>`;
     info.classList.remove('in');void info.offsetWidth;info.classList.add('in')}
