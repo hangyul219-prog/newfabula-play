@@ -4435,6 +4435,24 @@ function mapSay(m,q){const map=byId('map');if(!map)return;const k=m.at||m.who,[t
  b.className='say'+(q[2]!=null?' think':'')+(face?' hasface':'');b.innerHTML=`${face?`<i class="say-face" data-img="${face}"></i>`:''}<span class="say-t"><b>${esc(unitName(k)||m.name||'')}</b><span></span></span>`;
  b.querySelector('.say-t>span').textContent=txt;el.append(b);map.append(el);if(face)hydrate(b);
  const ms=clamp(2200+txt.length*110,2800,9000);setTimeout(()=>b.classList.add('out'),ms);setTimeout(()=>el.remove(),ms+350)}
+/* skill popup: the sheet's 「팝업」 button sets c.pop; every window shows it over that hero's battle sprite, or its token on the travel map */
+const SKSEEN=new Map();// hero id -> last popup id seen; a hero first seen here never replays its old popup
+function skPump(){for(const c of Object.values(CH||{})){if(!c?.id)continue;const p=c.pop;if(!SKSEEN.has(c.id)){SKSEEN.set(c.id,p?.id);continue}if(!p||SKSEEN.get(c.id)===p.id)continue;SKSEEN.set(c.id,p.id);skShow(c,p)}}
+setInterval(skPump,500);
+function skShow(c,p){const k='c:'+c.id,box=byId('arena')||byId('map');if(!box)return;let a;
+ if(box.id==='arena'){const sp=byId('units')?.querySelector(`[data-k="${CSS.escape(k)}"]`);a=sp?.querySelector('.plate')||sp}
+ else{const tk=P.map.toks?.find(x=>x.cid===c.id);a=(tk&&box.querySelector(`[data-tok="${CSS.escape(tk.id)}"]`))||byId('ptok')}
+ // drawn on the field's top layer (above the HUD), at the head of the hero's sprite / token; no sprite: top centre of the field
+ const mr=box.getBoundingClientRect(),ar=a?.getBoundingClientRect();box.querySelectorAll('.skhost').forEach(e=>e.remove());
+ const el=document.createElement('div'),host=el;el.className='spr mapsay skhost';el.style.zIndex=60;el.style.left=(ar?ar.left+ar.width/2-mr.left:mr.width/2)+'px';el.style.top=(ar?ar.top-mr.top-4:mr.height*.3)+'px';box.append(el);
+ el.querySelector('.skpop')?.remove();const b=document.createElement('div');b.className='say skpop';
+ b.innerHTML='<span class="say-t"><b></b><strong></strong><span></span></span>';b.querySelector('b').textContent=c.name||'';b.querySelector('strong').textContent=p.n||'';b.querySelector('.say-t>span').textContent=p.d||'';
+ el.append(b);
+ // the whole box stays inside the battle field / map: pushed back in from any edge; a description taller than the field scrolls
+ const C=box.getBoundingClientRect();let r=b.getBoundingClientRect();const s=r.width/(b.offsetWidth||1)||1;b.style.maxHeight=Math.max(80,(C.height-16)/s)+'px';r=b.getBoundingClientRect();
+ const dx=Math.max(C.left+8-r.left,0)+Math.min(C.right-8-r.right,0),dy=Math.max(C.top+8-r.top,0)+Math.min(C.bottom-8-r.bottom,0);
+ if(dx||dy){b.style.setProperty('--dx',dx/s+'px');b.style.setProperty('--dy',dy/s+'px');b.classList.add('moved')}
+ const ms=clamp(4500+(p.d||'').length*70,6000,15000);setTimeout(()=>b.classList.add('out'),ms);setTimeout(()=>(host||b).remove(),ms+350)}
 function lineClear(){const l=$('#line');l.blur();l.value='';setTimeout(()=>{const l=$('#line');if(l){l.value='';l.focus()}},0)}// blur commits the IME first, so nothing is left behind
 
 /* ================= WORLD MAP ================= */
@@ -6021,6 +6039,16 @@ html[data-theme="octo"] :is(label.f,.cls-free,summary){color:var(--parch2)!impor
 html[data-theme="octo"] .warn{color:#ff9a90!important}
 html[data-theme="octo"] :is(.muted,small,label,p,td,th,dt,dd,em,.ms,.aff,.md,.cls-free,.ds,.meta,.spec,summary,.rules,.hist){text-shadow:0 1px 2px rgba(0,0,0,.9)}/* Octopath text sits on a dark drop shadow; thin Gowun Dodum needs it to read */
 html[data-theme="octo"] .oct-art-empty p{color:var(--parch2)}
+</style>
+<style id="sk-pop">
+:root .spr .say.skpop{width:max-content;max-width:min(380px,46cqw);box-sizing:border-box;padding:10px 14px;text-align:left;white-space:normal;font-weight:500;font-size:13px;line-height:1.55;overflow-y:auto;overflow-x:hidden;transform:translate(calc(-50% + var(--dx,0px)),calc(-100% - 14px - var(--ph,0px) + var(--dy,0px)));animation:skIn .25s ease-out both}
+:root .spr .say.skpop.out{animation:skOut .3s ease-in forwards}
+:root .spr .say.skpop.moved:after{display:none}
+:root .spr .say.skpop .say-t{gap:3px;min-width:0}
+:root .spr .say.skpop .say-t>b{font-size:11px;opacity:.8}
+:root .spr .say.skpop .say-t>strong{font-size:16px;font-weight:800;line-height:1.3;overflow-wrap:anywhere}
+:root .spr .say.skpop .say-t>span{white-space:pre-wrap;overflow-wrap:anywhere;word-break:keep-all}
+@keyframes skIn{from{opacity:0}}@keyframes skOut{to{opacity:0}}
 </style>
 </body>
 </html>
