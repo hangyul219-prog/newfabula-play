@@ -5499,8 +5499,8 @@ function auInvCh(u,r){const c=u.o,G=(id,l,o,s=null,m=1)=>r.ch.push(auG(id,l,o,s,
   r.notes.push(`기원 — 행동 하나, MP 5${chain?` (+대상 하나마다 MP 10, 최대 ${chain}명 더)`:''}`);
   G('wells','이 장면의 샘 둘 (GM이 정해요)',Object.keys(AU_WELL).map(w=>({l:w,v:w})),(P.combat.wells||[]).map(w=>Object.keys(AU_WELL).indexOf(w)),2);
   if(hasHero(c,'내면의 샘'))G('inner','내면의 샘 (휴식할 때 고른 샘)',Object.keys(AU_WELL).map(w=>({l:w,v:w})),c.innerWell?Object.keys(AU_WELL).indexOf(c.innerWell):null);
-  const amt=x=>x.kind==='b'?`${x.ty} ${20+5*lv+xp}`:x.kind==='h'?`${x.ex.join('·')} 받는 피해 +${5+xp}`:x.kind==='heal'?`HP ${30+10*lv}`:x.kind==='d'?`${x.ty} ${10+5*lv} · ${STATUS[x.ex][0]}`:`MP −${20+10*lv} · ${STATUS[x.ex][0]}`;
-  G('inv','기원',auInvList(u).map(x=>({l:`${x.n} · ${['','방출','저주','기타'][x.tier]} · ${amt(x)}`,v:x.n})),null);
+  const amt=x=>x.kind==='b'?`${x.ty} ${20+5*lv+xp}`:x.kind==='h'?`${x.ex.join('·')} +${5+xp}`:x.kind==='heal'?`HP ${30+10*lv}`:x.kind==='d'?`${x.ty} ${10+5*lv}·${STATUS[x.ex][0]}`:`MP −${20+10*lv}·${STATUS[x.ex][0]}`;
+  G('inv','기원 (헥스는 받는 피해 +)',auInvList(u).map(x=>({l:`${x.n} ${amt(x)}`,v:x.n})),null);
   G('itg','대상',auUnits().filter(t=>t.o.hp>0).map(t=>({l:t.name,v:t.k})),null,1+chain);
   if(hasHero(c,'다섯 샘의 힘')){G('five','다섯 샘의 힘 · 함께 강해질 아군',pcs().filter(p=>p!==c).map(p=>unitOf('c:'+p.id)).filter(t=>t&&t.o.hp>0).map(t=>({l:t.name,v:t.k})),null);G('fiveA','다섯 샘의 힘 · 대지일 때 능력치',Object.entries(AB).map(([k,l])=>({l,v:k})),null)}}
 function auInvPost(u,r){const c=u.o,pick=id=>auPick(r,id),n=pick('inv');
@@ -6578,7 +6578,7 @@ html[data-theme="octo"] .oct-art-empty p{color:var(--parch2)}
 @keyframes skIn{from{opacity:0}}@keyframes skOut{to{opacity:0}}
 </style>
 <style id="auto-fx">
-.spr.flying .bob{translate:0 -50%;transition:translate .6s ease-out}.spr.flying .plate{translate:0 calc(var(--sz) * -.5cqh);transition:translate .6s ease-out}.spr.flying .bob>img,.spr.flying .bob>.sil{animation:auFloat 3.4s ease-in-out infinite}.spr.flying .shadow{opacity:.45;scale:.7}@keyframes auFloat{0%,100%{translate:0 0}50%{translate:0 -6%}}@media (prefers-reduced-motion:reduce){.spr.flying .bob>img,.spr.flying .bob>.sil{animation:none}}
+.spr.flying .bob{translate:0 -50%;transition:translate .6s ease-out}.spr.flying .plate{translate:0 calc(var(--sz) * -.5cqh);transition:translate .6s ease-out}.spr.flying .bob>img,.spr.flying .bob>.sil{animation:auFloat 3.4s ease-in-out infinite}.spr.flying .shadow{opacity:.45;scale:.7}html[data-theme="metaphor"] .actx .act-box:is(#_,*){background:rgba(12,28,30,.93)!important;backdrop-filter:blur(8px)!important}@keyframes auFloat{0%,100%{translate:0 0}50%{translate:0 -6%}}@media (prefers-reduced-motion:reduce){.spr.flying .bob>img,.spr.flying .bob>.sil{animation:none}}
 .au-notes{margin:4px 0 6px;padding-left:18px;font-size:13px;line-height:1.55}.au-ch{flex-wrap:wrap;gap:6px}.au-ch .axt{display:flex;flex-wrap:wrap;gap:4px}.au-opt{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 </style>
 </body>
