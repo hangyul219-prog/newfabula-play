@@ -5014,7 +5014,7 @@ function fldAdd(f){const C=P.combat,on=f.on;C.fld=[...(C.fld||[]).filter(x=>x.n!
 function efxTick(k,phase){const C=P.combat,end=phase==='start'?'turn':'turnEnd',gone=e=>e.on===k&&e.end===end&&C.round>=e.at;
   for(const t of auUnits())if(efx(t.o).some(gone)){const old=efx(t.o).filter(gone);t.o.efx=efx(t.o).filter(e=>!gone(e));auSv(t);logText(t.name,`효과 종료 — ${[...new Set(old.map(e=>e.n))].join(', ')}`)}
   if((C.fld||[]).some(gone)){C.fld=C.fld.filter(e=>!gone(e));saveP()}}
-const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
+const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
 function efxTag(o){return efx(o).filter(e=>AU_TAGK[e.k]?.(e.v)).map(e=>`<em class="tipd" data-tip="${esc(e.n+' · '+AU_TAGK[e.k](e.v)+(e.end==='scene'?' · 장면 끝까지':e.end==='once'?' · 한 번':' · 다음 턴까지'))}">${esc(AU_TAGK[e.k](e.v))}</em>`).join('')}
 // ---------- hooks into damage / defence / dice ----------
 function autoImmune(o,k){return efx(o).some(e=>e.k==='immune'&&e.v===k)||hasHero(o,'상태 이상 면역')&&o.heroPick?.immune===k}
@@ -5029,7 +5029,7 @@ function autoSurvive(t,hp){if(hp>0)return hp;const o=t.o,m=efx(o).find(e=>e.k===
   if(m){efxDel(t,e=>e===m);logText(t.name,`${m.n} — HP 1로 버팀`);return 1}
   if(t.pc&&hasHero(o,'불굴')&&!efx(o).some(e=>e.k==='usedFall')){o.efx=[...efx(o),{n:'불굴',k:'usedFall',end:'scene'}];logText(t.name,'불굴 — HP 1로 버팀 (장면에 한 번)');return 1}
   return 0}
-function autoHurt(t,dmg){if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수')}
+function autoHurt(t,dmg){if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수');if(efx(t.o).some(e=>e.k==='hydra')&&t.o.hp>0)auHeal(t,(+t.o.hp||0)<auMax(t,'hp')?'hp':'mp',5,'히드라의 춤')}// shortcut: 히드라 picks HP unless full; a pick prompt would interrupt the attacker's turn
 function autoDv(u,o,t,dv,vs,e){if(vs==='def'&&efx(t.o).some(x=>x.k==='def12'))dv=Math.max(dv,12);if(vs==='mdef'&&efx(t.o).some(x=>x.k==='mdef12'))dv=Math.max(dv,12);
   if(vs==='def'&&AF.act==='atk'&&o?.range==='원거리'&&efx(t.o).some(x=>x.k==='rdef'))dv+=2;
   if(vs==='def'&&u.pc&&o?.n==='맨손'&&hasHero(u.o,'상위 아크로모르포시스')&&['비전','투척','단검','격투'].includes(auCat(u,o)))dv=t.die('ins');
@@ -5037,6 +5037,7 @@ function autoDv(u,o,t,dv,vs,e){if(vs==='def'&&efx(t.o).some(x=>x.k==='def12'))dv
   return dv}
 function autoHr(u,o,e){let hr=e.hr;if(AF.x?.hr0&&!(AF.x.n==='반격'&&u.pc&&hasHero(u.o,'찰나')&&auCat(u,o)==='검'))hr=0;if(AF.act==='atk'&&AF.dual)hr=0;if(AF.dbl)hr*=2;return hr}
 function autoOpt(u,o){if(!o||!u)return o;o={...o};const c=u.o,cat=auCat(u,o);
+  {const at=efx(c).find(e=>e.k==='atype');if(at&&o.dmg!=null&&!AF.dty&&(AF.act==='atk'||AF.act==='spell'))o.type=at.v}
   if(AF.act==='atk'){const w=efx(c).find(e=>e.k==='wtype');if(w&&!AF.dty)o.type=w.v;if(AF.x?.dark)o.type='어둠';
     if(u.pc&&o.n==='맨손'&&auSl(u,'아크로모르포시스')){const sl=auSl(u,'아크로모르포시스'),uc=AF.ucat||'격투';o.dmg=(+o.dmg||0)+6+2*sl;o.acc=(+o.acc||0)+sl;o.cat=uc;o.range=['활','화기','투척'].includes(uc)?'원거리':'근접'}
     if(u.pc&&auSl(u,'광란')&&['격투','단검','도리깨','투척'].includes(auCat(u,o)))o.equalCrit=true;
@@ -5061,7 +5062,7 @@ function autoMirror(u,o,tg){if(AF.act!=='spell'||!o?.off)return tg;let m=false;c
   return m?out.filter((t,i)=>out.findIndex(x=>x.k===t.k)===i):tg}
 function autoTauntBlock(u,o,tg){if(!(AF.act==='atk'||AF.act==='spell'&&o?.off))return false;const ta=efx(u.o).find(e=>e.k==='taunt');if(!ta)return false;const by=unitOf(ta.v);
   if(!by||by.o.hp<=0||ta.n==='도발'&&!u.o.status?.enraged){efxDel(u,e=>e===ta);return false}
-  if(tg.some(t=>t.k===by.k)||!actPool(u,o).some(t=>t.k===by.k))return false;toast(`${ta.n} — 가능하면 ${by.name}을(를) 대상에 넣어야 해요`,1);return true}
+  if(tg.some(t=>t.k===by.k)||!actPool(u,o).some(t=>t.k===by.k)){if(ta.end==='once')efxDel(u,e=>e===ta);return false}toast(`${ta.n} — 가능하면 ${by.name}을(를) 대상에 넣어야 해요`,1);return true}
 function autoTax(u){const tx=efx(u.o).find(e=>e.k==='tax'&&e.v===({atk:'공격',guard:'방어',obj:'목표',spell:'주문',skill:'스킬'})[AF.act]);if(!tx||AF.pre||AF.taxPaid)return false;
   if((+u.o.mp||0)<10){toast(`강철 숲 — ${tx.v} 행동에는 MP 10이 필요해요. 다른 행동을 고르세요`,1);return true}u.o.mp-=10;AF.taxPaid=1;auSv(u);logText(u.name,`강철 숲 — ${tx.v} 행동 MP −10`);return false}
 function autoSkillPool(u,allies,foes){const n=actorSkills(u.o)[AF.opt]?.n||'';
@@ -5249,7 +5250,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
   if(AF.act==='guard'&&u.pc){const t0=tg[0];if(t0&&sl('호위'))efxAdd(t0,{n:'호위',k:'resist',v:'all',on:t0.k,end:'turn'});
     if(!t0&&sl('버티기')){auHeal(u,'hp',sl('버티기')*Math.max(0,...(c.bonds||[]).map(bondStr)),'버티기');const a=pick('hold');if(a)efxAdd(u,{n:'버티기',k:'die',v:a,on:u.k,end:'turnEnd'})}}
   // skills
-  if(AF.act==='skill'){const sk=r.sk||'',t0=tg[0];
+  if(AF.act==='skill'){const sk=r.sk||'',t0=tg[0];autoDancePost(u,r);
     if(sk==='규탄'&&r.okSk&&t0){const got=auLose(t0,'mp',sl('규탄')*10,'규탄');const s=pick('st');if(s)auStatus(t0,s,'규탄');if(s==='enraged'&&got)auHeal(u,'mp',Math.floor(got/2),'드러난 신경')}
     if(sk==='도발'&&r.okSk&&t0){auStatus(t0,'enraged','도발');efxAdd(t0,{n:'도발',k:'taunt',v:u.k,end:'scene'})}
     if(sk==='영혼 훔치기')(r.steal||[]).forEach((k,i)=>{const t=k&&unitOf(k);if(!t)return;t.o.efx=[...efx(t.o),{n:'영혼 훔치기',k:'stolen',v:u.k,end:'scene'}];auSv(t);if(!+t.o.rank)auHeal(u,'ip',sl('영혼 훔치기'),'영혼 훔치기');else logText(u.name,`영혼 훔치기 — ${t.name}의 영혼의 보물 (GM이 레벨×${t.o.villain?50:30} 제니트 이하로)`)});
@@ -5287,6 +5288,25 @@ function autoFinish(){const u=unitOf(AF.k);if(!u)return;const C=P.combat;
   if(AF.done){efxTick(AF.k,'end');if(C.chain===AF.k)delete C.chain;const cr=efx(u.o).find(e=>e.k==='courage');if(u.pc&&cr&&cr.v>=5){efxDel(u,e=>e===cr);auHeal(u,'hp',10,'밀물');auHeal(u,'mp',10,'밀물')}}}
 // targets a hidden hero can't be picked by the foes it hid from; 수리마법 reaches every creature in the scene
 function autoPoolFilter(u,list){if(AF.suri)return auUnits().filter(t=>t.o.hp>0);if(u.pc)return list;return list.filter(t=>!(t.pc&&efx(u.o).some(e=>e.k==='hidden'&&e.v===t.k)))}
+// ---------- 춤 (댄서): picking a dance adds its own picks to the result; applied when the result closes ----------
+const AU_DANCE_EL={'천사의 춤':'빛','박쥐의 춤':'어둠','골렘의 춤':'번개','그리핀의 춤':'바람','뮈르미돈의 춤':'대지','불사조의 춤':'화염','예티의 춤':'냉기'};
+const AU_DANCE_ST={'밴시의 춤':['slow','shaken'],'크라켄의 춤':['dazed','slow'],'악몽의 춤':['shaken','weak'],'사티로스의 춤':['weak','dazed']};
+function autoDance(u,v){const r=AF.res;if(!r)return;r.ch=(r.ch||[]).filter(g=>!g.id.startsWith('dance'));r.dance=v;const others=auUnits().filter(t=>t.k!==u.k&&t.o.hp>0),G=(id,l,o,s=null)=>r.ch.push(auG(id,l,o,s));
+  if(AU_DANCE_EL[v]){const el=AU_DANCE_EL[v];G('dance',v,[{l:`${el} 저항`,v:'rs'},{l:`모든 피해 ${el}`,v:'ty'}],0)}
+  else if(AU_DANCE_ST[v]||['마이나스의 춤','공작의 춤'].includes(v))G('danceT',`${v} · 대상`,others.map(t=>({l:t.name+(AU_DANCE_ST[v]&&t.o.status?.[AU_DANCE_ST[v][0]]?' ✓':''),v:t.k})));
+  else if(v==='우로보로스의 춤')G('danceT',`${v} · 바로 다음 턴`,pcs().filter(p=>p.hp>0&&'c:'+p.id!==u.k&&!P.combat.acted['c:'+p.id]).map(p=>({l:p.name,v:'c:'+p.id})));
+  else if(v==='유니콘의 춤')G('danceT',`${v} · 아군`,pcs().filter(p=>'c:'+p.id!==u.k&&(p.bonds||[]).some(b=>b.to===u.name&&bondStr(b))).map(p=>({l:p.name,v:'c:'+p.id})));
+  else if(v==='사자의 춤')G('danceT',`${v} · 회복`,AU_STAT.filter(s=>u.o.status?.[s]).map(s=>({l:STATUS[s][0],v:s})));
+  else if(v==='히드라의 춤')r.notes=[...(r.notes||[]).filter(n=>!n.startsWith('히드라')),'히드라의 춤 — 다음 턴 시작까지 피해를 받으면 HP 5 (HP가 가득이면 MP 5) 회복']}
+function autoDancePost(u,r){const v=r.dance;if(!v||!(u.o.active?.['춤']||[]).includes(v))return;const pick=id=>auPick(r,id),t=pick('danceT'),T=t&&unitOf(t),dex=u.die('dex'),add=x=>efxAdd(u,{n:v,on:u.k,end:'turn',...x});
+  if(AU_DANCE_EL[v]){const el=AU_DANCE_EL[v],m=pick('dance');if(m==='rs')add({k:'resist',v:el});if(m==='ty')add({k:'atype',v:el})}
+  if(AU_DANCE_ST[v]&&T&&T.o.status?.[AU_DANCE_ST[v][0]])auStatus(T,AU_DANCE_ST[v][1],v);
+  if(v==='마이나스의 춤'&&T)auLose(T,'mp',dex,v);
+  if(v==='공작의 춤'&&T)efxAdd(T,{n:v,k:'taunt',v:u.k,end:'once'});
+  if(v==='우로보로스의 춤'&&t){P.combat.chain=t;saveP();logText(u.name,`${v} — ${T?.name}이(가) 바로 다음 턴`)}
+  if(v==='유니콘의 춤'&&T){const n=dex+((+u.o.level||0)>=40?10:(+u.o.level||0)>=20?5:0);auHeal(u,'hp',n,v);auHeal(T,'hp',n,v)}
+  if(v==='사자의 춤'&&t&&u.o.status?.[t]){u.o.status[t]=false;saveC();logText(u.name,`${v} — ${STATUS[t][0]} 회복`)}
+  if(v==='히드라의 춤')add({k:'hydra'})}
 /* ================= end combat automation ================= */
 // core inventory: potion 50 HP, elixir 50 MP, tonic clears one status, elemental shard 10 damage of a chosen type, tent = rest (GM runs it)
 function itemEffect(it,t,status,type,actor){let msg=`${it.n} 사용 (IP −${it.ip})`;if(!t)return msg;const tu=t.o,max=t.pc?derive(tu).maxHp:tu.maxHp,mmax=t.pc?derive(tu).maxMp:tu.maxMp;
@@ -5348,11 +5368,11 @@ document.addEventListener('click',ev=>{const box=ev.target.closest('.act-box');i
   else if(t.dataset.ar==='lucky'){const u=unitOf(AF.k),e=AF.res?.e;if(!u||!e||e.pick?.length!==1||AF.busy)return;const i=e.pick[0],n=u.o.lucky??7,old=e.dice[i].r;
     e.dice[i].r=n;u.o.lucky=old;e.pick=[];e.note=`행운의 7 — ${old} → ${n}`;saveC();judge(e);logText(u.name,`행운의 7 — 주사위 ${old}을(를) ${n}(으)로 (새 행운의 숫자 ${old})`);pushLog(e);AF.pre=e;AF.res=null;return actRoll()}
   else if(t.dataset.ar==='cho'){const u=unitOf(AF.k),k=AF.res?.cho;if(!u||!k)return;const lab=CHOICE_SK[k].lab,lim=lab==='테리오폼'?2:1,v=t.dataset.v;u.o.active=u.o.active||{};let a=u.o.active[lab]||[];
-    if(a.includes(v))a=a.filter(x=>x!==v);else{a=[...a,v].slice(-lim);logText(u.name,`${lab} — ${v}`);if(lab==='춤')efxAdd(u,{n:'춤',k:'danced',on:u.k,end:'turn'});abilFx(u.k,v,lab,choiceList(k).find(x=>x.n===v)?.d,AF.targets.map(unitOf).filter(Boolean).map(t=>t.name))}/* picking a dance / therioform is not a Fabula Point spend: ability popup, not the FP flare */u.o.active[lab]=a;saveC();if(tab==='combat')renderCombat()}
+    if(a.includes(v))a=a.filter(x=>x!==v);else{a=[...a,v].slice(-lim);logText(u.name,`${lab} — ${v}`);if(lab==='춤'){efxAdd(u,{n:'춤',k:'danced',on:u.k,end:'turn'});autoDance(u,v)}abilFx(u.k,v,lab,choiceList(k).find(x=>x.n===v)?.d,AF.targets.map(unitOf).filter(Boolean).map(t=>t.name))}/* picking a dance / therioform is not a Fabula Point spend: ability popup, not the FP flare */u.o.active[lab]=a;saveC();if(tab==='combat')renderCombat()}
   else if(t.dataset.ar==='ach'){autoChoose(+t.dataset.c,+t.dataset.v)}
   else if(t.dataset.ar==='aopt'){autoTgtPick(t.dataset.v)}
   else if(t.dataset.ar==='faith'){return autoFaith(t.dataset.c)}
-  else if(t.dataset.ar==='free'){AF.res=null;AF.step='cmd';AF.targets=[];AF.act='';SFX.play('tick')}
+  else if(t.dataset.ar==='free'){if(AF.res)autoPost(AF.res);AF.res=null;AF.step='cmd';AF.targets=[];AF.act='';SFX.play('tick')}
   renderAct()});
 // core: spend 1 Fabula Point to invoke a Trait (reroll one or both dice) or a Bond (+its strength, once per check); a fumble can't be changed.
 // The rerolled check runs back through actRoll so hits/damage/DL are re-judged; costs (MP, IP) aren't charged twice.
