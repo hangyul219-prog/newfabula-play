@@ -1,5 +1,5 @@
 # runs the combat-automation scenarios in the play tool (offline GM, never touches Firebase)
-# usage: python -I -X utf8 tests/combat_test.py [theme] [filter]   (Playwright + Microsoft Edge; ~210 scenarios with forced dice)
+# usage: python -I -X utf8 run_tests.py [theme] [filter]
 import json,sys,pathlib
 from playwright.sync_api import sync_playwright
 D=pathlib.Path(__file__).parent;TH=sys.argv[1] if len(sys.argv)>1 else 'metaphor';FL=sys.argv[2] if len(sys.argv)>2 else ''
@@ -16,7 +16,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto(U);pg.evaluate("s=>{localStorage.clear();for(const k in s)localStorage.setItem(k,s[k])}",{'fu.user':json.dumps('GM'),'fu.role':json.dumps('gm'),'fu.room':'','fu.fbcfg':'offline','fu.theme':json.dumps(TH),'fu.play.tab':json.dumps('combat')});pg.reload();boot(pg)
     pg.evaluate((D/'t_auto.js').read_text(encoding='utf-8'))
-    scen=(D/'t_scen.js').read_text(encoding='utf-8')
+    scen=(D/'t_scen.js').read_text(encoding='utf-8')+chr(10)+((D/'t_scen2.js').read_text(encoding='utf-8') if (D/'t_scen2.js').exists() else '')
     if FL:scen='\n'.join(l for l in scen.split('\nT.run(') if True) # whole file; filter applied on output
     pg.evaluate("()=>{if(typeof tab!=='undefined'&&tab!=='combat'){document.querySelector('#tabs [data-tab=\"combat\"]')?.click()}}");pg.wait_for_timeout(500)
     pg.evaluate(scen)
