@@ -4122,7 +4122,7 @@ function syncSprites(H,F){const box=byId('units'),nt=nextTurn(),ac=P.combat.acte
     const home=place(u,u.pc?HERO_SLOTS:FOE_SLOTS);el.dataset.homeX=home[0];el.dataset.homeY=home[1];const[x,y]=battlePosition(u,home);const sz=26*u.scale;// every sprite the same height (no depth shrink); a hero's own size comes from the sheet's 전장 크기
     el.style.left=x+'%';el.style.top=y+'%';el.style.zIndex=Math.round(y*10);el.style.setProperty('--sz',sz.toFixed(2));el.style.setProperty('--sprite-scale',u.scale);
     const cr=u.hp>0&&u.hp<=u.cr,down=u.hp<=0,acted=!!ac[u.k];
-    el.className=`spr ${u.pc?'pc':'foe'}${u.img?' hasimg':''}${BATTLE_DRAG.active?.k===u.k&&BATTLE_DRAG.active.moved?' battle-dragging':''}${SEL===u.k?' sel':''}${acted?' acted':''}${down?' down':''}${!acted&&!down&&nt===(u.pc?'pc':'npc')?' turn':''}`;
+    el.className=`spr${auFly(u.o)?' flying':''} ${u.pc?'pc':'foe'}${u.img?' hasimg':''}${BATTLE_DRAG.active?.k===u.k&&BATTLE_DRAG.active.moved?' battle-dragging':''}${SEL===u.k?' sel':''}${acted?' acted':''}${down?' down':''}${!acted&&!down&&nt===(u.pc?'pc':'npc')?' turn':''}`;
     const im=el.querySelector('img');if(u.img&&im.dataset.img!==u.img){im.dataset.img=u.img;hydrate(el)}
     const sts=(u.o.guard?'<em>방어</em>':'')+lockTag(u.o)+actTag(u.o)+efxTag(u.o)+Object.entries(STATUS).filter(([k])=>u.o.status?.[k]).map(([k,v])=>`<em>${gi(k)}${v[0]}</em>`).join('');
     const AL=roundActs(u.k),L=AL.at(-1),la=L?`<div class="lact${L.ally?' ally':''}">${actChip(L)}${AL.length>1?`<em class="lmore">+${AL.length-1}</em><div class="lall"><small>이번 라운드 행동</small>${AL.map(x=>`<div class="lrow${x.ally?' ally':''}">${actChip(x)}</div>`).join('')}</div>`:''}</div>`:'';// one line over the head; the whole round on hover
@@ -4188,7 +4188,7 @@ function dockHTML(H,F){const u=[...H,...F].find(x=>x.k===SEL);const C=P.combat;c
 function unitPanel(u){const o=u.o,k=u.k,acted=P.combat.acted[k];const aff=u.pc?[]:Object.entries(o.aff||{}).filter(([,v])=>v);
   const stats=u.pc?`<span>방어 <b>${u.d.def}</b></span><span>마방 <b>${u.d.mdef}</b></span><span>선제 <b>${u.d.init>=0?'+':''}${u.d.init}</b></span><span>${gi('ip')}IP <b>${u.ip}/${u.maxIp}</b></span><span>${Object.keys(ATTR).map(a=>`${gi(a)}${AB[a]} d${u.d.cur[a]}`).join(' · ')}</span>`
     :u.show?`<span>${gi('hp')}HP <b>${u.hp}/${u.max}</b></span><span>${gi('mp')}MP <b>${u.mp}/${u.maxMp}</b></span><span>방어 <b>${o.def}</b></span><span>마방 <b>${o.mdef}</b></span><span>선제 <b>${o.init}</b></span>${o.attr?`<span>${Object.keys(ATTR).map(a=>`${gi(a)}${AB[a]} d${o.attr[a]}`).join(' · ')}</span>`:''}`:'<span>정보 미공개</span>';
-  return`<div class="ap"><div class="dk-h"><b>${esc(u.name)}</b><i>${u.pc?'HERO':'FOE'} · LV${u.lv}${!u.pc?' · '+esc(RANK[o.rank]||'병사'):''}${o.villain?` · ${VTIER.find(x=>x[0]===vTier(o))?.[1]||''} 빌런 · UP ${o.up}`:''}</i><span class="sp"></span>${GM||mineK(k)?`<button class="btn sm red${mineK(k)&&!acted&&nextTurn()==='pc'?' pulse':''}" data-g="act" data-k="${k}"><i class="gi" data-ic="atk"></i> 행동</button>${u.pc&&xStartOpen()?`<button class="btn sm gold${mineK(k)&&!P.combat.inited?' pulse':''}" data-act="xact" data-k="${k}" data-s="start" title="전투 시작 전 준비: 선제권 판정 · 개시 스킬 · 스프라이트 (턴을 쓰지 않아요)">개시 전 행동</button>`:''}<button class="btn sm" data-act="xact" data-k="${k}" title="행동과 같은 메뉴, 턴을 쓰지 않아요. 전투불능 · 행동 금지 · MP 부족이어도 강제로 쓸 수 있어요">＋ 추가 행동</button><button class="btn sm${acted?' gold':''}" data-act="acted" data-k="${k}">${acted?'행동함 <i class="gi" data-ic="check"></i>':'턴 완료'}</button>`:''}</div>
+  return`<div class="ap"><div class="dk-h"><b>${esc(u.name)}</b><i>${u.pc?'HERO':'FOE'} · LV${u.lv}${!u.pc?' · '+esc(RANK[o.rank]||'병사'):''}${o.villain?` · ${VTIER.find(x=>x[0]===vTier(o))?.[1]||''} 빌런 · UP ${o.up}`:''}</i><span class="sp"></span>${GM||mineK(k)?`<button class="btn sm red${mineK(k)&&!acted&&nextTurn()==='pc'?' pulse':''}" data-g="act" data-k="${k}"><i class="gi" data-ic="atk"></i> 행동</button>${u.pc&&xStartOpen()?`<button class="btn sm gold${mineK(k)&&!P.combat.inited?' pulse':''}" data-act="xact" data-k="${k}" data-s="start" title="전투 시작 전 준비: 선제권 판정 · 개시 스킬 · 스프라이트 (턴을 쓰지 않아요)">개시 전 행동</button>`:''}<button class="btn sm" data-act="xact" data-k="${k}" title="행동과 같은 메뉴, 턴을 쓰지 않아요. 전투불능 · 행동 금지 · MP 부족이어도 강제로 쓸 수 있어요">＋ 추가 행동</button><button class="btn sm${acted?' gold':''}" data-act="acted" data-k="${k}">${acted?'행동함 <i class="gi" data-ic="check"></i>':'턴 완료'}</button><button class="btn sm${auFly(o)?' gold':''}" data-act="fly" data-k="${k}" title="비행 중이면 근접 공격이 닿지 않아요 (비행 중인 공격자·예외 스킬 제외)">${auFly(o)?'비행 중':'비행'}</button>`:''}</div>
   <div class="stats">${stats}</div>
   ${(()=>{const AL=roundActs(k);return AL.length?`<div class="lacts"><small>이번 라운드 행동 · ${AL.length}</small>${AL.map(x=>`<div class="lrow${x.ally?' ally':''}">${actChip(x)}</div>`).join('')}</div>`:''})()}
   ${aff.length&&u.show?`<div class="aff">${aff.map(([t,v])=>`<em class="${v}">${AFF[v]}</em>${gi(t)}${t}`).join(' ')}</div>`:''}
@@ -4203,7 +4203,7 @@ function unitPanel(u){const o=u.o,k=u.k,acted=P.combat.acted[k];const aff=u.pc?[
 function clockBg(k){const seg=360/k.size;let g=[];for(let i=0;i<k.size;i++){const a=i*seg,b=a+seg;g.push(`${i<k.filled?'#9af3e6':'rgba(255,255,255,.06)'} ${a}deg ${b-2}deg, #0b1416 ${b-2}deg ${b}deg`)}return`conic-gradient(${g.join(',')})`}
 function target(k){const[t,id]=k.split(':');return t==='c'?{c:CH[id],pc:true}:{c:P.combat.enemies.find(e=>e.id===id),pc:false}}
 function applyDmg(k,n,type,opt={}){const t=unitOf(k);if(!t||!Number.isFinite(+n)||+n<=0)return;const c=t.o,pc=t.pc,v=damageResult(t,n,type,opt),max=pc?derive(c).maxHp:c.maxHp;
- c.hit={ty:type||'물리',cr:VFXCR,t:Date.now()};if(v.a==='ab')c.hp=clamp(c.hp+v.n,0,Math.max(max,+c.hp||0));else{let dmg=v.n;if(opt.mpDamage){const paid=Math.min(+c.mp||0,dmg);c.mp=Math.max(0,(+c.mp||0)-paid);dmg-=paid;}c.hp=autoSurvive(t,Math.max(0,c.hp-dmg));if(t.anomUsed)efxDel(t,e=>e.k==='anom');if(dmg>0){c.heroNap=false;autoHurt(t,dmg)}}
+ c.hit={ty:type||'물리',cr:VFXCR,t:Date.now()};if(v.a==='ab')c.hp=clamp(c.hp+v.n,0,Math.max(max,+c.hp||0));else{let dmg=v.n;if(opt.mpDamage){const paid=Math.min(+c.mp||0,dmg);c.mp=Math.max(0,(+c.mp||0)-paid);dmg-=paid;}c.hp=autoSurvive(t,Math.max(0,c.hp-dmg));if(t.anomUsed)efxDel(t,e=>e.k==='anom');if(dmg>0){c.heroNap=false;autoHurt(t,dmg,type)}}
  logText(c.name,`${type||'물리'} ${v.a==='ab'?'흡수':'피해'} ${v.n}${opt.mpDamage?' (MP 우선)':''}${pc||c.reveal?` → HP ${c.hp}/${max}`:''}`);/* the log is shared: an unstudied foe's HP stays hidden */if(P.combat.edge.on&&v.a==='vu')gainEdge(pc?'npc':'pc');if(P.combat.edge.on&&['im','ab'].includes(v.a))gainEdge(pc?'pc':'npc');if(pc)saveC();saveP();if(tab==='combat')renderCombat();}
 function gainEdge(s){const E=P.combat.edge,o=s==='pc'?'npc':'pc';if(E[o]>0)E[o]--;else E[s]=Math.min(5,E[s]+1)}
 // core p.101: villain tier sets starting Ultima Points (old saves stored villain:true → major)
@@ -5015,7 +5015,7 @@ function fldAdd(f){const C=P.combat,on=f.on;C.fld=[...(C.fld||[]).filter(x=>x.n!
 function efxTick(k,phase){const C=P.combat,end=phase==='start'?'turn':'turnEnd',gone=e=>e.on===k&&e.end===end&&C.round>=e.at;
   for(const t of auUnits())if(efx(t.o).some(gone)){const old=efx(t.o).filter(gone);t.o.efx=efx(t.o).filter(e=>!gone(e));auSv(t);logText(t.name,`효과 종료 — ${[...new Set(old.map(e=>e.n))].join(', ')}`)}
   if((C.fld||[]).some(gone)){C.fld=C.fld.filter(e=>!gone(e));saveP()}}
-const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,brain:v=>`두뇌 ${v}/4`,symbol:v=>v,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
+const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,grounded:()=>'비행 불가',brain:v=>`두뇌 ${v}/4`,symbol:v=>v,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
 function efxTag(o){return efx(o).filter(e=>AU_TAGK[e.k]?.(e.v)).map(e=>`<em class="tipd" data-tip="${esc(e.n+' · '+AU_TAGK[e.k](e.v)+(e.end==='scene'?' · 장면 끝까지':e.end==='once'?' · 한 번':' · 다음 턴까지'))}">${esc(AU_TAGK[e.k](e.v))}</em>`).join('')}
 // ---------- hooks into damage / defence / dice ----------
 function autoImmune(o,k){const ch=symOf(o,'변화의 상징');if(ch&&ch.p===k)return ch.p2==='gain';return efx(o).some(e=>e.k==='immune'&&e.v===k)||hasHero(o,'상태 이상 면역')&&o.heroPick?.immune===k?true:null}
@@ -5030,7 +5030,7 @@ function autoSurvive(t,hp){if(hp>0)return hp;const o=t.o,m=efx(o).find(e=>e.k===
   if(m){efxDel(t,e=>e===m);logText(t.name,`${m.n} — HP 1로 버팀`);return 1}
   if(t.pc&&hasHero(o,'불굴')&&!efx(o).some(e=>e.k==='usedFall')){o.efx=[...efx(o),{n:'불굴',k:'usedFall',end:'scene'}];logText(t.name,'불굴 — HP 1로 버팀 (장면에 한 번)');return 1}
   return 0}
-function autoHurt(t,dmg){if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수');if(efx(t.o).some(e=>e.k==='hydra')&&t.o.hp>0)auHeal(t,(+t.o.hp||0)<auMax(t,'hp')?'hp':'mp',5,'히드라의 춤')}// shortcut: 히드라 picks HP unless full; a pick prompt would interrupt the attacker's turn
+function autoHurt(t,dmg,type){if(t.pc&&dmg>0&&auTh(t.o,'프테로테리아')&&['바람','번개','냉기'].includes(type)&&!efx(t.o).some(e=>e.k==='grounded'))efxAdd(t,{n:'프테로테리아',k:'grounded',on:t.k,end:'turn'});if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수');if(efx(t.o).some(e=>e.k==='hydra')&&t.o.hp>0)auHeal(t,(+t.o.hp||0)<auMax(t,'hp')?'hp':'mp',5,'히드라의 춤')}// shortcut: 히드라 picks HP unless full; a pick prompt would interrupt the attacker's turn
 function autoDv(u,o,t,dv,vs,e){if(vs==='def'&&efx(t.o).some(x=>x.k==='def12'))dv=Math.max(dv,12);if(vs==='def'&&t.pc&&auTh(t.o,'플라코포라'))dv=Math.max(dv,13+Math.floor(auSl(t,'테리오모르포시스')/2));if(vs==='mdef'&&efx(t.o).some(x=>x.k==='mdef12'))dv=Math.max(dv,12);
   if(vs==='def'&&AF.act==='atk'&&o?.range==='원거리'&&efx(t.o).some(x=>x.k==='rdef'))dv+=2;
   if(vs==='def'&&u.pc&&o?.n==='맨손'&&hasHero(u.o,'상위 아크로모르포시스')&&['비전','투척','단검','격투'].includes(auCat(u,o)))dv=t.die('ins');
@@ -5042,9 +5042,7 @@ function autoOpt(u,o){if(!o||!u)return o;o={...o};const c=u.o,cat=auCat(u,o);
   if(AF.act==='atk'){const w=efx(c).find(e=>e.k==='wtype');if(w&&!AF.dty)o.type=w.v;if(AF.x?.dark)o.type='어둠';
     if(u.pc&&o.n==='맨손'&&auSl(u,'아크로모르포시스')){const sl=auSl(u,'아크로모르포시스'),uc=AF.ucat||'격투';o.dmg=(+o.dmg||0)+6+2*sl;o.acc=(+o.acc||0)+sl;o.cat=uc;o.range=['활','화기','투척'].includes(uc)?'원거리':'근접'}
     if(u.pc&&auSl(u,'광란')&&['격투','단검','도리깨','투척'].includes(auCat(u,o)))o.equalCrit=true;
-    if(!AF.pre&&u.pc){const ma=auEq(c).armor?.martial||auEq(c).shield?.name;// 밀물 / 소용돌이 떼: points grow with each qualifying attack
-      if(hasHero(c,'밀물')&&cat==='격투'&&o.range!=='원거리'&&!ma)auCount(u,'courage','밀물',1,99);
-      if(hasHero(c,'소용돌이 떼')&&cat==='투척'&&o.range==='원거리'&&!ma)auCount(u,'momentum','소용돌이 떼',1,5)}}
+}
   if(AF.act==='spell'&&o.off&&u.pc){const tg=AF.targets;if(hasHero(c,'비전 표식')&&tg.length===1&&efx(unitOf(tg[0])?.o).some(e=>e.k==='amark'&&e.v===u.k))o.equalCrit=true}
   if(u.pc&&hasHero(c,'드러난 신경')&&AF.targets.some(k=>unitOf(k)?.o.status?.enraged))o.equalCrit=true;
   if(AF.act==='atk'||AF.act==='spell'&&o.off)o.acc=(+o.acc||0)+2*AF.targets.filter(k=>symOf(unitOf(k)?.o,'진실의 상징')).length;
@@ -5067,7 +5065,10 @@ function autoMirror(u,o,tg){if(AF.act!=='spell'||!o?.off)return tg;let m=false;c
 function autoTauntBlock(u,o,tg){if(!(AF.act==='atk'||AF.act==='spell'&&o?.off))return false;{const h=actPool(u,o).find(t=>t.pc!==u.pc&&auCrisis(t)&&symOf(t.o,'적의의 상징'));if(h&&!tg.some(t=>t.k===h.k)){toast(`적의의 상징 — 가능하면 ${h.name}을(를) 대상에 넣어야 해요`,1);return true}}const ta=efx(u.o).find(e=>e.k==='taunt');if(!ta)return false;const by=unitOf(ta.v);
   if(!by||by.o.hp<=0||ta.n==='도발'&&!u.o.status?.enraged){efxDel(u,e=>e===ta);return false}
   if(tg.some(t=>t.k===by.k)||!actPool(u,o).some(t=>t.k===by.k)){if(ta.end==='once')efxDel(u,e=>e===ta);return false}toast(`${ta.n} — 가능하면 ${by.name}을(를) 대상에 넣어야 해요`,1);return true}
-function autoTax(u){{const s=symOf(u.o,'금지의 상징'),A={atk:'공격',guard:'방어',obj:'목표',spell:'주문',skill:'스킬'}[AF.act];if(s&&s.p===A&&!AF.pre&&!AF.banPaid){const by=unitOf(s.src),lv=+by?.o.level||+by?.o.lv||0,v=lv>=40?20:lv>=20?10:5;AF.banPaid=1;auLose(u,'hp',v,'금지의 상징');auLose(u,'mp',v,'금지의 상징')}}const tx=efx(u.o).find(e=>e.k==='tax'&&e.v===({atk:'공격',guard:'방어',obj:'목표',spell:'주문',skill:'스킬'})[AF.act]);if(!tx||AF.pre||AF.taxPaid)return false;
+function autoTax(u){if(AF.act==='atk'&&u.pc&&!AF.pre){const c=u.o,o=autoOpt(u,actOptions(u,'atk')[AF.opt]),cat=auCat(u,o),ma=auEq(c).armor?.martial||auEq(c).shield?.name;// 밀물 / 소용돌이 떼: once per attack roll
+    if(hasHero(c,'밀물')&&cat==='격투'&&o?.range!=='원거리'&&!ma)auCount(u,'courage','밀물',1,99);
+    if(hasHero(c,'소용돌이 떼')&&cat==='투척'&&o?.range==='원거리'&&!ma)auCount(u,'momentum','소용돌이 떼',1,5)}
+{const s=symOf(u.o,'금지의 상징'),A={atk:'공격',guard:'방어',obj:'목표',spell:'주문',skill:'스킬'}[AF.act];if(s&&s.p===A&&!AF.pre&&!AF.banPaid){const by=unitOf(s.src),lv=+by?.o.level||+by?.o.lv||0,v=lv>=40?20:lv>=20?10:5;AF.banPaid=1;auLose(u,'hp',v,'금지의 상징');auLose(u,'mp',v,'금지의 상징')}}const tx=efx(u.o).find(e=>e.k==='tax'&&e.v===({atk:'공격',guard:'방어',obj:'목표',spell:'주문',skill:'스킬'})[AF.act]);if(!tx||AF.pre||AF.taxPaid)return false;
   if((+u.o.mp||0)<10){toast(`강철 숲 — ${tx.v} 행동에는 MP 10이 필요해요. 다른 행동을 고르세요`,1);return true}u.o.mp-=10;AF.taxPaid=1;auSv(u);logText(u.name,`강철 숲 — ${tx.v} 행동 MP −10`);return false}
 function autoSkillPool(u,allies,foes){const n=actorSkills(u.o)[AF.opt]?.n||'';
   if(['규탄','도발','영혼 훔치기'].includes(n))return foes;if(n==='덧없는 평온')return foes.filter(t=>AU_STAT.filter(s=>t.o.status?.[s]).length>=2);
@@ -5122,6 +5123,7 @@ function autoRes(u,o,tg){const r=AF.res;if(!r||!u)return;r.ch=r.ch||[];r.notes=r
   if(AF.act==='spell'&&o){const OPP={풀구르:'dazed',글라키에스:'slow',이그니스:'shaken',움브라:'weak',룩스:'dazed'};
     if(OPP[n]&&e?.crit&&hit.length)r.ch.push(auG('opp','기회',[{l:`명중 대상 ${STATUS[OPP[n]][0]}`,v:OPP[n]}],0));
     if(n==='테라'&&e?.crit&&hit.length)r.ch.push(auG('opp','기회',[{l:'명중 대상 다음 턴 행동 −1',v:'lock'}],0));
+    if(n==='벤투스'&&e?.crit&&hit.some(x=>auFly(unitOf(x.k)?.o)))r.ch.push(auG('opp','기회',[{l:'비행 중인 대상 착륙',v:'land'}],0));
     if(n==='환각')r.ch.push(auG('st','상태 이상',[...stOpt(['dazed','shaken']),...(hasHero(c,'덧없는 평온')?[{l:'둘 다 (덧없는 평온)',v:'both'}]:[])],0));
     if(n==='무기력')r.ch.push(auG('st','상태 이상',[...stOpt(['slow','weak']),...(hasHero(c,'덧없는 평온')?[{l:'둘 다 (덧없는 평온)',v:'both'}]:[])],0));
     if(n==='원소의 장막'||n==='원소 무기')r.ch.push(auG('ty','속성',['바람','번개','대지','화염','냉기'].map(x=>({l:x,v:x})),0));
@@ -5147,6 +5149,7 @@ function autoRes(u,o,tg){const r=AF.res;if(!r||!u)return;r.ch=r.ch||[];r.notes=r
     if(hit.length&&cat==='창'&&!rng&&hasHero(c,'강철 숲')&&auWeapons(c).length===1&&(+c.mp||0)>=20){r.ch.push(auG('steelT','강철 숲 (MP 20 · 피해 절반)',hit.map(x=>({l:x.name,v:x.k})),null));r.ch.push(auG('steelA','강철 숲 · 행동',['공격','방어','목표','주문','스킬'].map(x=>({l:x,v:x})),null))}
     if(hit.length&&hasHero(c,'은신')&&(+c.fp||0)>=1)r.ch.push(auG('hide','은신 (FP 1)',[{l:'명중한 적이 나를 대상으로 못 함',v:1}],null));
     if(hit.length&&cat==='비전'&&hasHero(c,'비전 표식'))r.ch.push(auG('amark','비전 표식',hit.map(x=>({l:x.name,v:x.k})),null));
+    if(AF.x?.n==='비상 일격'&&hit.some(x=>auFly(unitOf(x.k)?.o)))r.ch.push(auG('land','비상 일격',[{l:'비행 중인 대상 착륙',v:1}],0));
     if(AF.x?.queen)r.ch.push(auG('queen','여왕의 책략',[...pcs().filter(p=>p.hp>0).map(p=>({l:`${p.name} HP +${5+5*sl('여왕의 책략')}`,v:'c:'+p.id})),{l:'칙령·돌격·성채 이어서',v:'skill'}],null));
     if(AF.dbl)r.notes.push(`되든 안 되든 — HR 두 배${e&&e.total%2===0?' · 결과가 짝수: 무기를 배낭에 넣어요':''}`);
     if(AF.x?.n==='고속'&&hasHero(c,'고요한 사냥꾼')&&['활','창','투척'].includes(cat))r.notes.push('고요한 사냥꾼 — 대상들은 이번 턴 무료 공격 불가');
@@ -5227,6 +5230,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
   // spells
   if(AF.act==='spell'&&o){const so={n,src:u.k,spell:true};
     const st=pick('st'),op=pick('opp');for(const t of tgt){if(st==='both'){const L=n==='환각'?['dazed','shaken']:['slow','weak'];L.forEach(s=>auStatus(t,s,n))}else if(st&&n!=='강화')auStatus(t,st,n);if(op&&op!=='lock')auStatus(t,op,n+' 기회')}
+    if(op==='land')for(const t of tgt.filter(t=>auFly(t.o)))auLand(t,'벤투스');
     if(op==='lock'||n==='정지')for(const t of tgt){t.o.lock=['all'];auSv(t);logText(t.name,`${n} — 다음 턴 행동 −1`)}// shortcut: a foe with several turns loses its whole next turn, not one action
     if(n==='격노 유발')for(const t of tgt){auStatus(t,'enraged',n);t.o.lock=['guard','spell'];auSv(t)}
     if(n==='오메가')for(const t of tgt)auLose(t,'hp',20+Math.floor((+t.o.lv||+t.o.level||0)/2),'오메가');
@@ -5256,6 +5260,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
     if(AF.x&&hasHero(c,'용감한 방패 강타')&&hit.some(t=>efx(t.o).some(x=>x.k==='taunt'&&x.v===u.k)))c.efx=[...efx(c),{n:'용감한 방패 강타',k:'usedShieldBash',on:u.k,end:'turnEnd',at:P.combat.round}];
     const q=pick('queen');if(q==='skill'){AF.res=null;AF.x=null;AF.act='skill';AF.step='opt';AF.targets=[];renderAct();return true}if(q)auHeal(unitOf(q),'hp',5+5*sl('여왕의 책략'),'여왕의 책략');
     if(AF.dbl&&e&&e.total%2===0)logText(u.name,'되든 안 되든 — 결과가 짝수: 쓴 무기를 배낭에 넣어요 (시트에서 장비 해제)');
+    if(AF.x?.n==='비상 일격'&&pick('land'))for(const t of hit.filter(t=>auFly(t.o)))auLand(t,'비상 일격');
     if(AF.x?.arc&&hit.length)return chain({n:'비전 병사 · 주문',acts:['spell'],hr0:1,one:1,tk:hit[0].k});
     if(AF.dual&&!AF.dual2){AF.dual2=1;AF.res=null;AF.targets=[];AF.step='opt';renderAct();return true}}
   // after dealing damage
@@ -5265,7 +5270,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
     if(dealt&&auTh(c,'아르팍티다')&&AF.k===u.k)c.efx=[...efx(c),{n:'아르팍티다',k:'usedArp',on:u.k,end:'turnEnd',at:P.combat.round}];
     if(AF.act==='atk'&&o?.n==='맨손'){const ty=autoOpt(u,o)?.type;for(const[n,[el,st]]of Object.entries(AU_TH_EL))if(auTh(c,n)&&ty===el)for(const t of hit)if(lost(t)>=20)auStatus(t,st,n)}
     if(dealt&&AF.act==='spell'&&sl('흡수')&&auWeapons(c).some(w=>['비전','단검','도리깨'].includes(w.cat)))auHeal(u,'mp',sl('흡수')*2,'흡수')}
-  if(pick('gift'))auGiftPay(u);
+  if(pick('gift')){auGiftPay(u);if(String(pick('gift')).startsWith('그래비토키네시스'))for(const t of hit.filter(t=>auFly(t.o)))auLand(t,'그래비토키네시스')}
   {const et=pick('etr');if(et){auHeal(unitOf(et),'hp',5+5*auBrain(c)+auGiftLv(c),'에너지 전이');auGiftPay(u)}}
   if(pick('calm')&&tg[0]){auHeal(tg[0],'mp',10+5*auBrain(c)+auGiftLv(c),'안심되는 존재감');auGiftPay(u)}
   {const es=pick('elsym'),el=symOf(c,'원소의 상징'),eb=el&&unitOf(el.src);if(es&&eb){const tot=(r.rows||[]).filter(x=>x.hit).reduce((s2,x)=>s2+x.dmg,0);auLose(eb,'mp',Math.floor(tot/3),'원소의 상징')}}
@@ -5322,7 +5327,8 @@ function autoFinish(){const u=unitOf(AF.k);if(!u)return;const C=P.combat;
   if(AF.xm==='more'){const h=efx(u.o).find(e=>e.k==='haste');if(h){h.v--;if(h.v<=0)efxDel(u,e=>e===h);else auSv(u);logText(u.name,`가속 — 추가 행동 (남은 ${Math.max(0,h.v)}번)`)}}
   if(AF.done){efxTick(AF.k,'end');if(C.chain===AF.k)delete C.chain;const cr=efx(u.o).find(e=>e.k==='courage');if(u.pc&&cr&&cr.v>=5){efxDel(u,e=>e===cr);auHeal(u,'hp',10,'밀물');auHeal(u,'mp',10,'밀물')}}}
 // targets a hidden hero can't be picked by the foes it hid from; 수리마법 reaches every creature in the scene
-function autoPoolFilter(u,list){if(AF.suri)return auUnits().filter(t=>t.o.hp>0);if(u.pc)return list;return list.filter(t=>!(t.pc&&efx(u.o).some(e=>e.k==='hidden'&&e.v===t.k)))}
+function autoPoolFilter(u,list){if(AF.suri)return auUnits().filter(t=>t.o.hp>0);const o=actOptions(u,AF.act)[AF.opt],ao=AF.act==='atk'?autoOpt(u,o):o;
+  list=list.filter(t=>!(auFly(t.o)&&(AF.act==='atk'&&!auReach(u,ao)||AF.act==='spell'&&o?.n==='테라')));if(u.pc)return list;return list.filter(t=>!(t.pc&&efx(u.o).some(e=>e.k==='hidden'&&e.v===t.k)))}
 // ---------- 춤 (댄서): picking a dance adds its own picks to the result; applied when the result closes ----------
 const AU_DANCE_EL={'천사의 춤':'빛','박쥐의 춤':'어둠','골렘의 춤':'번개','그리핀의 춤':'바람','뮈르미돈의 춤':'대지','불사조의 춤':'화염','예티의 춤':'냉기'};
 const AU_DANCE_ST={'밴시의 춤':['slow','shaken'],'크라켄의 춤':['dazed','slow'],'악몽의 춤':['shaken','weak'],'사티로스의 춤':['weak','dazed']};
@@ -5362,6 +5368,13 @@ function autoIpCost(u,cost){const s=cost>0&&P.combat.started&&symOf(u.o,'창조�
 function autoFpSpent(u){AF.fpUsed=1;if(symOf(u.o,'번영의 상징')){u.o.zenit=(+u.o.zenit||0)+100;logText(u.name,'번영의 상징 — 100제니트')}}
 function autoFate(){const u=unitOf(AF.k),e=AF.res?.e,s=u&&symOf(u.o,'운명의 상징'),by=s&&unitOf(s.src);if(!e||!by||e.crit||e.fumble||(+by.o.fp||0)<1||AF.fated)return;
   for(const d of e.dice)d.r=rd(d.d);by.o.fp--;saveC();judge(e);e.note='운명의 상징 · 다시 굴림';logText(by.name,`운명의 상징 — ${u.name}의 판정 다시 굴림 (남은 FP ${by.o.fp})`);pushLog(e);AF.pre=e;AF.res=null;AF.fated=1;actRoll()}
+// ---------- 비행: a unit's fly flag (panel toggle) or an active 프테로테리아; melee needs reach, some effects force a landing ----------
+function auFly(o){return!!o&&(!!o.fly||auTh(o,'프테로테리아')&&!efx(o).some(e=>e.k==='grounded'))}
+function auReach(u,o){if(!u||AF.act!=='atk'||o?.range==='원거리')return true;const c=u.o;if(auFly(c)||AF.x?.n==='비상 일격')return true;
+  if(u.pc&&auSl(u,'사이코키네시스')&&['비전','검'].includes(auCat(u,o)))return true;
+  if(u.pc&&o?.n==='맨손'&&hasHero(c,'상위 아크로모르포시스')&&['도리깨','창'].includes(AF.ucat||'격투'))return true;return false}
+function auLand(t,why){if(!t||!t.o.fly&&!auTh(t.o,'프테로테리아'))return;if(t.o.fly){t.o.fly=false}else efxAdd(t,{n:'프테로테리아',k:'grounded',on:t.k,end:'turn'});auSv(t);logText(t.name,`착륙 — ${why}`)}
+function autoFlyToggle(k){const u=unitOf(k);if(!u||!(GM||mineK(k)))return;u.o.fly=!u.o.fly;auSv(u);logText(u.name,u.o.fly?'비행 시작':'착륙');if(tab==='combat')renderCombat()}
 /* ================= end combat automation ================= */
 // core inventory: potion 50 HP, elixir 50 MP, tonic clears one status, elemental shard 10 damage of a chosen type, tent = rest (GM runs it)
 function itemEffect(it,t,status,type,actor){let msg=`${it.n} 사용 (IP −${it.ip})`;if(!t)return msg;const tu=t.o,max=t.pc?derive(tu).maxHp:tu.maxHp,mmax=t.pc?derive(tu).maxMp:tu.maxMp;
@@ -5706,7 +5719,7 @@ document.addEventListener('click',async ev=>{const dt=ev.target.closest('[data-d
   case'dmg':case'heal':{const k=t.dataset.k,n=Math.abs(+byId('n-'+k).value||0);if(!n){toast('수치를 입력하세요',1);break}
     if(a==='dmg')applyDmg(k,n,byId('t-'+k).value);else{const{c,pc}=target(k);const max=pc?derive(c).maxHp:c.maxHp,was=c.hp;c.hp=clamp(c.hp+n,0,Math.max(max,+c.hp||0));logText(c.name,`HP ${c.hp-was} 회복${pc||c.reveal?` → ${c.hp}/${max}`:''}`);pc?saveC():saveP();renderCombat()}break}
   case'mp':{const k=t.dataset.k,n=Math.abs(+byId('n-'+k).value||0);if(!n){toast('수치를 입력하세요',1);break}const{c,pc}=target(k);const max=pc?derive(c).maxMp:c.maxMp;c.mp=clamp(c.mp+n*+t.dataset.s,0,Math.max(max,+c.mp||0));logText(c.name,`MP ${t.dataset.s>0?'+':'−'}${n}${pc||c.reveal?` → ${c.mp}/${max}`:''}`);pc?saveC():saveP();renderCombat();break}
-  case'acted':C.acted[t.dataset.k]=!C.acted[t.dataset.k];if(C.acted[t.dataset.k])unlock(t.dataset.k);saveP();renderCombat();autoRound();break;
+  case'fly':autoFlyToggle(t.dataset.k);break;case'acted':C.acted[t.dataset.k]=!C.acted[t.dataset.k];if(C.acted[t.dataset.k])unlock(t.dataset.k);saveP();renderCombat();autoRound();break;
   case'lock':{const[tp,id]=t.dataset.p.split(':');const o=tp==='c'?CH[id]:C.enemies.find(e=>e.id===id);const L=o.lock=o.lock||[],a=t.dataset.k,i=L.indexOf(a);i>=0?L.splice(i,1):L.push(a);tp==='c'?saveC():saveP();renderCombat();break}
   case'endround':C.round++;C.acted={};saveP();logText('GM',`라운드 ${C.round} 시작`);renderCombat();break;
   case'first':C.first=C.first==='pc'?'npc':'pc';saveP();renderCombat();break;
@@ -6421,6 +6434,7 @@ html[data-theme="octo"] .oct-art-empty p{color:var(--parch2)}
 @keyframes skIn{from{opacity:0}}@keyframes skOut{to{opacity:0}}
 </style>
 <style id="auto-fx">
+.spr.flying .bob{translate:0 -50%;transition:translate .6s ease-out}.spr.flying .plate{translate:0 calc(var(--sz) * -.5cqh);transition:translate .6s ease-out}.spr.flying .bob>img,.spr.flying .bob>.sil{animation:auFloat 3.4s ease-in-out infinite}.spr.flying .shadow{opacity:.45;scale:.7}@keyframes auFloat{0%,100%{translate:0 0}50%{translate:0 -6%}}@media (prefers-reduced-motion:reduce){.spr.flying .bob>img,.spr.flying .bob>.sil{animation:none}}
 .au-notes{margin:4px 0 6px;padding-left:18px;font-size:13px;line-height:1.55}.au-ch{flex-wrap:wrap;gap:6px}.au-ch .axt{display:flex;flex-wrap:wrap;gap:4px}.au-opt{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 </style>
 </body>

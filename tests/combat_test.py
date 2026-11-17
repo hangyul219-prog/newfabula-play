@@ -16,7 +16,7 @@ with sync_playwright() as p:
     pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.goto(U);pg.evaluate("s=>{localStorage.clear();for(const k in s)localStorage.setItem(k,s[k])}",{'fu.user':json.dumps('GM'),'fu.role':json.dumps('gm'),'fu.room':'','fu.fbcfg':'offline','fu.theme':json.dumps(TH),'fu.play.tab':json.dumps('combat')});pg.reload();boot(pg)
     pg.evaluate((D/'t_auto.js').read_text(encoding='utf-8'))
-    scen=(D/'t_scen.js').read_text(encoding='utf-8')+chr(10)+((D/'t_scen2.js').read_text(encoding='utf-8') if (D/'t_scen2.js').exists() else '')
+    scen=chr(10).join(f.read_text(encoding='utf-8') for f in sorted(D.glob('t_scen*.js')))
     if FL:scen='\n'.join(l for l in scen.split('\nT.run(') if True) # whole file; filter applied on output
     pg.evaluate("()=>{if(typeof tab!=='undefined'&&tab!=='combat'){document.querySelector('#tabs [data-tab=\"combat\"]')?.click()}}");pg.wait_for_timeout(500)
     pg.evaluate(scen)
