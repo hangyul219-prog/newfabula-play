@@ -5001,12 +5001,13 @@ function auEq(c){return effectiveEquip(c)||{}}
 function auWeapons(c){const e=auEq(c);return[e.main,e.off].filter(w=>w?.name)}
 function auArcane(c){return auWeapons(c).some(w=>w.cat==='비전'||hasHero(c,'힘의 마법')&&/mig/.test([w.a1,w.a2].join()))}// 힘의 마법: a MIG weapon counts as arcane
 function auCat(u,o){return o?.cat||(o?.n==='맨손'?'격투':'')}
-const auHeal=(t,k,n,why)=>{if(!t||n<=0||P.combat.fld?.some(f=>f.k==='noheal'))return 0;if(k==='mp')n+=(P.combat.fld||[]).filter(f=>f.k==='mp+').reduce((s,f)=>s+f.v,0);const o=t.o,max=auMax(t,k),before=+o[k]||0;o[k]=clamp(before+n,0,Math.max(max,before));auSv(t);const got=o[k]-before;if(got)logText(t.name,`${why} — ${k==='hp'?'HP':'MP'} +${got}`);return got};
+const auHeal=(t,k,n,why)=>{if(!t||n<=0||P.combat.fld?.some(f=>f.k==='noheal'))return 0;if(k==='hp'&&t.pc&&auTh(t.o,'암피비아')){n+=5;const s=AU_STAT.find(x=>t.o.status?.[x]);if(s){t.o.status[s]=false;logText(t.name,`암피비아 — ${STATUS[s][0]} 회복`)}}// shortcut: 암피비아 clears the first status; the player can swap it by hand
+if(k==='mp')n+=(P.combat.fld||[]).filter(f=>f.k==='mp+').reduce((s,f)=>s+f.v,0);const o=t.o,max=auMax(t,k),before=+o[k]||0;o[k]=clamp(before+n,0,Math.max(max,before));auSv(t);const got=o[k]-before;if(got)logText(t.name,`${why} — ${k==='hp'?'HP':'MP'} +${got}`);return got};
 const auLose=(t,k,n,why)=>{if(!t||n<=0)return 0;const o=t.o,before=+o[k]||0;o[k]=Math.max(0,before-n);auSv(t);logText(t.name,`${why} — ${k==='hp'?'HP':'MP'} −${before-o[k]}${t.pc||o.reveal?` → ${o[k]}`:''}`);return before-o[k]};
 function auStatus(t,k,why){if(!t||!STATUS[k])return false;const o=t.o;if(autoImmune(o,k)||t.pc&&(gearImmune(o,k)||hasHero(o,'성벽')&&P.combat.round===1))return false;o.status=o.status||{};o.status[k]=true;auSv(t);logText(t.name,`${STATUS[k][0]}${why?' ('+why+')':''}`);return true}
 // ---------- timed effects ----------
 function efx(o){return Array.isArray(o?.efx)?o.efx:[]}
-function efxDie(o,a){return efx(o).some(e=>e.k==='die'&&e.v===a)}
+function efxDie(o,a){return efx(o).some(e=>e.k==='die'&&e.v===a)||Object.entries(AU_TH_DIE).some(([n,k])=>k===a&&auTh(o,n))}
 function efxAdd(t,e){const o=t.o||t,C=P.combat,on=e.on||t.k;// the turn that ends it: the clock owner's next one (this round if it hasn't acted yet)
   const at=C.round+(C.acted?.[on]||AF.k===on&&!AF.finished?1:0);o.efx=[...efx(o).filter(x=>!(x.n===e.n&&x.k===e.k&&(e.k!=='die'||x.v===e.v))),{...e,on,at}];if(t.o)auSv(t)}
 function efxDel(t,f){const o=t.o||t,n=efx(o).length;o.efx=efx(o).filter(e=>!f(e));if(o.efx.length!==n&&t.o)auSv(t)}
@@ -5030,7 +5031,7 @@ function autoSurvive(t,hp){if(hp>0)return hp;const o=t.o,m=efx(o).find(e=>e.k===
   if(t.pc&&hasHero(o,'불굴')&&!efx(o).some(e=>e.k==='usedFall')){o.efx=[...efx(o),{n:'불굴',k:'usedFall',end:'scene'}];logText(t.name,'불굴 — HP 1로 버팀 (장면에 한 번)');return 1}
   return 0}
 function autoHurt(t,dmg){if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수');if(efx(t.o).some(e=>e.k==='hydra')&&t.o.hp>0)auHeal(t,(+t.o.hp||0)<auMax(t,'hp')?'hp':'mp',5,'히드라의 춤')}// shortcut: 히드라 picks HP unless full; a pick prompt would interrupt the attacker's turn
-function autoDv(u,o,t,dv,vs,e){if(vs==='def'&&efx(t.o).some(x=>x.k==='def12'))dv=Math.max(dv,12);if(vs==='mdef'&&efx(t.o).some(x=>x.k==='mdef12'))dv=Math.max(dv,12);
+function autoDv(u,o,t,dv,vs,e){if(vs==='def'&&efx(t.o).some(x=>x.k==='def12'))dv=Math.max(dv,12);if(vs==='def'&&t.pc&&auTh(t.o,'플라코포라'))dv=Math.max(dv,13+Math.floor(auSl(t,'테리오모르포시스')/2));if(vs==='mdef'&&efx(t.o).some(x=>x.k==='mdef12'))dv=Math.max(dv,12);
   if(vs==='def'&&AF.act==='atk'&&o?.range==='원거리'&&efx(t.o).some(x=>x.k==='rdef'))dv+=2;
   if(vs==='def'&&u.pc&&o?.n==='맨손'&&hasHero(u.o,'상위 아크로모르포시스')&&['비전','투척','단검','격투'].includes(auCat(u,o)))dv=t.die('ins');
   const m=efx(t.o).find(x=>x.k==='momentum');if(vs==='def'&&m?.v&&AF.act==='atk'&&!e.fumble&&(e.crit||e.total>=dv)){(AF._mom||={})[t.k]=1;dv+=m.v}// 소용돌이 떼: a hit spends the momentum on defence
@@ -5047,6 +5048,7 @@ function autoOpt(u,o){if(!o||!u)return o;o={...o};const c=u.o,cat=auCat(u,o);
   if(AF.act==='spell'&&o.off&&u.pc){const tg=AF.targets;if(hasHero(c,'비전 표식')&&tg.length===1&&efx(unitOf(tg[0])?.o).some(e=>e.k==='amark'&&e.v===u.k))o.equalCrit=true}
   if(u.pc&&hasHero(c,'드러난 신경')&&AF.targets.some(k=>unitOf(k)?.o.status?.enraged))o.equalCrit=true;
   if(AF.ov2)o.a1=AF.ov2[0],o.a2=AF.ov2[1],o.acc=(+o.acc||0)+(+AF.ov2[2]||0);
+  if(u.pc&&AF.thType&&o.dmg!=null&&(AF.act==='atk'||AF.act==='spell'))o.type=AF.thType;if(u.pc&&AF.act==='atk'&&o.n==='맨손'&&auTh(c,'폴리포다'))o.multi=3;
   return o}
 function auCount(u,k,n,d,cap){const e=efx(u.o).find(x=>x.k===k),v=Math.min(cap,(e?.v||0)+d);u.o.efx=[...efx(u.o).filter(x=>x.k!==k),{n,k,v,end:'scene'}];saveC()}
 function autoDmg(u,o,t,tg){let n=+AF.x?.dmg||0;if(!u.pc)return n;const c=u.o,cat=auCat(u,o),sl=n2=>auSl(u,n2);if(AF.x?.dmgCat&&['격투','창'].includes(cat))n+=5;
@@ -5055,6 +5057,7 @@ function autoDmg(u,o,t,tg){let n=+AF.x?.dmg||0;if(!u.pc)return n;const c=u.o,cat
   if(AF.act==='atk'&&hasHero(c,'비전 표식')&&cat==='비전')n+=5;
   if(AF.act==='atk'){const cr=efx(c).find(e=>e.k==='courage'),mo=efx(c).find(e=>e.k==='momentum');if(cr&&cat==='격투'&&o.range!=='원거리')n+=cr.v;if(mo&&cat==='투척'&&o.range==='원거리')n+=mo.v}
   if(AF.x&&hasHero(c,'용감한 방패 강타')&&efx(t.o).some(e=>e.k==='taunt'&&e.v===u.k)&&!efx(c).some(e=>e.k==='usedShieldBash'))n+=5;
+  if(auTh(c,'아르팍티다')&&!efx(c).some(e=>e.k==='usedArp')&&tg.some(x=>auCrisis(x)))n+=5;
   if(AF.x?.n==='고속'&&hasHero(c,'고요한 사냥꾼')&&['활','창','투척'].includes(cat))n+=5*sl('고속');
   if(o.n==='맨손'&&hasHero(c,'상위 아크로모르포시스')){const uc=AF.ucat||'격투';if(['활','검'].includes(uc)&&tg.length>1)n+=5;if(['화기','중량'].includes(uc)&&t.o.sp==='인공체')n+=5}
   return n}
@@ -5097,6 +5100,7 @@ function autoTgtHTML(u,o){if(!u?.pc||!o)return'';const c=u.o,out=[],chip=(v,l,on
     const ca=auSl(u,'대격변');if(ca&&auArcane(c)&&/즉시/.test(o.d||'')&&o.dmg!=null)out.push(`<span class="muted">대격변</span>`+Array.from({length:ca+1},(_,i)=>chip('cata:'+i,i?`MP +${i*10} · 피해 +${i*5}`:'안 씀',(+AF.cata||0)===i)).join(''));
     if(hasHero(c,'수리마법')&&/생물 하나/.test(o.tg||'')||hasHero(c,'수리마법')&&(o.multi||1)===1&&o.mp)out.push(`<span class="muted">수리마법 (MP 두 배)</span>`+['dex','ins','mig','wlp'].map(a=>[6,8,10,12].map(d=>chip(`suri:${a}:${d}`,`${AB[a]} d${d}`,AF.suri===a+':'+d)).join('')).join(''));
     if(hasHero(c,'비마구스')&&auArcane(c)&&AF.free2==null)out.push(`<span class="muted">비마구스</span>`+[0,20,30,40,50].map(v=>chip('bimag:'+v,v?`MP ${v}로 두 주문`:'안 씀',(+AF.bimag||0)===v)).join(''))}
+  if((AF.act==='atk'||AF.act==='spell')&&o.dmg!=null)for(const[n,[el]]of Object.entries(AU_TH_EL))if(auTh(c,n))out.push(chip('thty:'+el,`${n} · 피해를 ${el}로`,AF.thType===el));
   if(AF.act==='study'&&hasHero(c,'신속 스캔'))out.push(chip('scan','신속 스캔 · 모든 적 분석',!!AF.scanAll));
   return out.length?`<div class="sub">스킬 옵션</div><div class="axt au-opt">${out.join('')}</div>`:''}
 function autoTgtPick(v){const u=unitOf(AF.k);if(!u)return;const o=actOptions(u,AF.act)[AF.opt]||{};const[k,a,b]=v.split(':');
@@ -5104,7 +5108,7 @@ function autoTgtPick(v){const u=unitOf(AF.k);if(!u)return;const o=actOptions(u,A
   if(k==='swap')swap(a,{ins:'아는 것이 힘',wlp:'사이코키네시스',mig:'힘의 마법'}[a]);
   else if(k==='mswd'){const w=auWeapons(u.o).find(x=>x.name===a);if(AF.swapBy==='마법검:'+a){AF.ov2=null;AF.swapBy=''}else if(w){AF.ov2=[w.a1,w.a2,+w.acc||0];AF.swapBy='마법검:'+a}}
   else if(k==='ucat')AF.ucat=a;else if(k==='dbl')AF.dbl=!AF.dbl;else if(k==='cata')AF.cata=+a;else if(k==='scan')AF.scanAll=!AF.scanAll;
-  else if(k==='bimag')AF.bimag=+a||0;
+  else if(k==='bimag')AF.bimag=+a||0;else if(k==='thty')AF.thType=AF.thType===a?'':a;
   else if(k==='suri'){const id=a+':'+b;if(AF.suri===id){AF.suri='';AF.targets=[]}else{AF.suri=id;AF.targets=auUnits().filter(t=>t.o.hp>0&&t.die(a)===+b).map(t=>t.k)}}}
 // skill menu: costs and checks filled in when the skill is picked (still editable)
 function autoPrefill(u,sn){const half=u.pc&&hasHero(u.o,'끝없는 전장');const P2={규탄:[5,['ins','wlp']],도발:[5,['mig','wlp']],격려:[5],돌파:[5],'주교의 칙령':[half?5:10],'왕의 성채':[half?5:10],'돌격 기병':[half?5:10],'영혼 훔치기':[0,['dex','wlp']]}[sn];
@@ -5237,7 +5241,9 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
   // after dealing damage
   if((AF.act==='atk'||AF.act==='spell'&&o?.off)&&u.pc){const dealt=hit.reduce((a,t)=>a+lost(t),0);
     if(pick('pain')!=null&&hit.length){auHeal(u,'hp',sl('고통')*2,'고통');auHeal(u,'mp',sl('고통')*2,'고통')}
-    if(dealt&&sl('바이오파지')&&auCrisis(u))auHeal(u,'hp',sl('바이오파지')*5,'바이오파지');
+    if(dealt&&sl('바이오파지')&&auCrisis(u)){auHeal(u,'hp',sl('바이오파지')*5,'바이오파지');if(auTh(c,'뉴로파고이다'))auHeal(u,'mp',4+sl('테리오모르포시스'),'뉴로파고이다')}
+    if(dealt&&auTh(c,'아르팍티다')&&AF.k===u.k)c.efx=[...efx(c),{n:'아르팍티다',k:'usedArp',on:u.k,end:'turnEnd',at:P.combat.round}];
+    if(AF.act==='atk'&&o?.n==='맨손'){const ty=autoOpt(u,o)?.type;for(const[n,[el,st]]of Object.entries(AU_TH_EL))if(auTh(c,n)&&ty===el)for(const t of hit)if(lost(t)>=20)auStatus(t,st,n)}
     if(dealt&&AF.act==='spell'&&sl('흡수')&&auWeapons(c).some(w=>['비전','단검','도리깨'].includes(w.cat)))auHeal(u,'mp',sl('흡수')*2,'흡수')}
   // struck heroes' reactions
   for(const g of r.ch||[]){const ci=g.id.indexOf(':');if(ci<0)continue;const id=g.id.slice(0,ci),k=g.id.slice(ci+1);const t=id==='refr'?null:unitOf(k),v=auPick(r,g.id);if(v==null||Array.isArray(v)&&!v.length)continue;
@@ -5266,6 +5272,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
     if(sk==='덧없는 평온'&&tg.length){c.mp=Math.max(0,(+c.mp||0)-10*tg.length);saveC();let gain=0;for(const t of tg){const k0=AU_STAT.filter(s=>t.o.status?.[s]).length,cr0=auCrisis(t);t.o.status={};auSv(t);auLose(t,'hp',Math.floor((+c.level||0)/2)+10*k0,'덧없는 평온');if(t.o.hp<=0||!cr0&&auCrisis(t))gain+=20}if(gain)auHeal(u,'mp',gain,'덧없는 평온')}
     if(pick('repeat')){c.efx=[...efx(c),{n:'반복',k:'usedRepeat',on:u.k,end:'turnEnd',at:P.combat.round}];saveC();AF.res=null;AF.step='tgt';AF.targets=[];renderAct();return true}}
   // checks
+  if(AF.act==='obj'&&e?.ok&&u.pc&&(auTh(c,'디나모테리아')&&AF.attr.includes('mig')||auTh(c,'타키테리아')&&AF.attr.includes('dex'))){const cl=P.clocks[+AF.clock];if(cl){cl.filled=clamp(cl.filled+1,0,cl.size);saveP();logText(u.name,`${auTh(c,'디나모테리아')&&AF.attr.includes('mig')?'디나모테리아':'타키테리아'} — 시계 +1칸`)}}
   const pv=pick('pers');if(pv&&AF.act==='obj'){const cl=P.clocks[+AF.clock];if(cl&&(+c.mp||0)>=pv*20){c.mp-=pv*20;cl.filled=clamp(cl.filled+pv,0,cl.size);saveC();saveP();logText(u.name,`설득력 — MP −${pv*20}, 시계 +${pv}칸`)}}
   if(AF.act==='study'&&AF.scanAll&&e&&e.total>=10){for(const x of P.combat.enemies.filter(x=>x.hp>0))x.reveal=true;saveP();logText(u.name,`신속 스캔 — 모든 적 분석 (${e.total})`)}
   const fo=pick('fort');if(fo){AF.fortGiven=1;if(fo==='hp'||fo==='mp')auHeal(u,fo,sl('불굴의 정신')*5,'불굴의 정신');else{c.status[fo]=false;saveC();logText(u.name,`불굴의 정신 — ${STATUS[fo][0]} 회복`)}}
@@ -5307,6 +5314,10 @@ function autoDancePost(u,r){const v=r.dance;if(!v||!(u.o.active?.['춤']||[]).in
   if(v==='유니콘의 춤'&&T){const n=dex+((+u.o.level||0)>=40?10:(+u.o.level||0)>=20?5:0);auHeal(u,'hp',n,v);auHeal(T,'hp',n,v)}
   if(v==='사자의 춤'&&t&&u.o.status?.[t]){u.o.status[t]=false;saveC();logText(u.name,`${v} — ${STATUS[t][0]} 회복`)}
   if(v==='히드라의 춤')add({k:'hydra'})}
+// ---------- 테리오폼 (뮤턴트): the active forms (u.o.active['테리오폼']) change dice, defence, damage ----------
+const AU_TH_EL={엘렉트로포라:['번개','slow'],프네우모포라:['바람','weak'],피로포라:['화염','dazed'],톡시코포라:['독','poisoned']};
+const AU_TH_DIE={아르팍티다:'ins',디나모테리아:'mig',타키테리아:'dex'};
+function auTh(o,n){return(o?.active?.['테리오폼']||[]).includes(n)}
 /* ================= end combat automation ================= */
 // core inventory: potion 50 HP, elixir 50 MP, tonic clears one status, elemental shard 10 damage of a chosen type, tent = rest (GM runs it)
 function itemEffect(it,t,status,type,actor){let msg=`${it.n} 사용 (IP −${it.ip})`;if(!t)return msg;const tu=t.o,max=t.pc?derive(tu).maxHp:tu.maxHp,mmax=t.pc?derive(tu).maxMp:tu.maxMp;
