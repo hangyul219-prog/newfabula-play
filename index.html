@@ -5015,15 +5015,15 @@ function fldAdd(f){const C=P.combat,on=f.on;C.fld=[...(C.fld||[]).filter(x=>x.n!
 function efxTick(k,phase){const C=P.combat,end=phase==='start'?'turn':'turnEnd',gone=e=>e.on===k&&e.end===end&&C.round>=e.at;
   for(const t of auUnits())if(efx(t.o).some(gone)){const old=efx(t.o).filter(gone);t.o.efx=efx(t.o).filter(e=>!gone(e));auSv(t);logText(t.name,`효과 종료 — ${[...new Set(old.map(e=>e.n))].join(', ')}`)}
   if((C.fld||[]).some(gone)){C.fld=C.fld.filter(e=>!gone(e));saveP()}}
-const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,arcana:v=>`${v}의 아르카나`,vivace:v=>`${AB[v]} 시계+1`,loseRes:v=>`${v} 저항 상실`,ttype:v=>`받는 피해 ${v}`,dr:v=>`물리 −${v}`,pcrit:()=>'파워 코드',theme:v=>`주제가 ${v}`,reso:()=>'공명',garden:v=>`성장 ${v}/4`,gtype:v=>`정원 피해 ${v}`,grounded:()=>'비행 불가',brain:v=>`두뇌 ${v}/4`,symbol:v=>v,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
+const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,arcana:v=>`${v}의 아르카나`,hex:v=>`저주 (${[].concat(v).join('·')})`,vivace:v=>`${AB[v]} 시계+1`,loseRes:v=>`${v} 저항 상실`,ttype:v=>`받는 피해 ${v}`,dr:v=>`물리 −${v}`,pcrit:()=>'파워 코드',theme:v=>`주제가 ${v}`,reso:()=>'공명',garden:v=>`성장 ${v}/4`,gtype:v=>`정원 피해 ${v}`,grounded:()=>'비행 불가',brain:v=>`두뇌 ${v}/4`,symbol:v=>v,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
 function efxTag(o){return efx(o).filter(e=>AU_TAGK[e.k]?.(e.v)).map(e=>`<em class="tipd" data-tip="${esc(e.n+' · '+AU_TAGK[e.k](e.v)+(e.end==='scene'?' · 장면 끝까지':e.end==='once'?' · 한 번':' · 다음 턴까지'))}">${esc(AU_TAGK[e.k](e.v))}</em>`).join('')}
 // ---------- hooks into damage / defence / dice ----------
 function autoImmune(o,k){const ch=symOf(o,'변화의 상징');if(ch&&ch.p===k)return ch.p2==='gain';return efx(o).some(e=>e.k==='immune'&&e.v===k)||hasHero(o,'상태 이상 면역')&&o.heroPick?.immune===k||auSeedImm(o,k)||auArcF(o)?.imm?.includes(k)?true:null}
 function autoAff(t,type,a){const E=efx(t.o);if(E.some(e=>e.k==='anom')&&(a==='im'||a==='ab')){t.anomUsed=true;return'vu'}
-  const rs=E.some(e=>e.k==='resist'&&(e.v==='all'||e.v===type))||auArcF(t.o)?.rs?.includes(type)||t.pc&&pcs().some(p=>p!==t.o&&auArc(p)?.v==='탑'&&auArc(p).p===type)||auSeedRs(t,type)||symOf(t.o,'수호의 상징')?.p===type||t.pc&&['어둠','독'].includes(type)&&auSl(t,'어둠의 피')>0&&auCrisis(t);
+  const rs=E.some(e=>e.k==='resist'&&(e.v==='all'||e.v===type))||auArcF(t.o)?.rs?.includes(type)||t.pc&&hasHero(t.o,'내면의 샘')&&AU_WELL[t.o.innerWell]?.[0]===type||t.pc&&pcs().some(p=>p!==t.o&&auArc(p)?.v==='탑'&&auArc(p).p===type)||auSeedRs(t,type)||symOf(t.o,'수호의 상징')?.p===type||t.pc&&['어둠','독'].includes(type)&&auSl(t,'어둠의 피')>0&&auCrisis(t);
   if(a==='rs'&&E.some(e=>e.k==='loseRes'&&e.v===type))a='';const th=E.find(e=>e.k==='theme');const rs2=rs||th&&AU_KEY[th.v]?.[0]===type;
   return rs2?(a==='vu'?'':a||'rs'):a}
-function autoTaken(t,n,type,opt){if(!n)return n;if(type==='물리'){const dr=efx(t.o).find(e=>e.k==='dr');if(dr)n=Math.max(0,n-dr.v)}{const w=symOf(t.o,'약점의 상징');if(w&&w.p===type)n+=5;const s=symOf(t.o),by=s&&unitOf(s.src);if(by&&by.pc!==t.pc&&auSl(by,'개인적 손길'))n+=auSl(by,'개인적 손길')}n+=(P.combat.fld||[]).filter(f=>f.k==='dmg+').reduce((s,f)=>s+f.v,0)+efx(t.o).filter(e=>e.k==='taken').reduce((s,e)=>s+e.v,0);
+function autoTaken(t,n,type,opt){if(!n)return n;if(type==='물리'){const dr=efx(t.o).find(e=>e.k==='dr');if(dr)n=Math.max(0,n-dr.v)}{const w=symOf(t.o,'약점의 상징');if(w&&w.p===type)n+=5;const s=symOf(t.o),by=s&&unitOf(s.src);if(by&&by.pc!==t.pc&&auSl(by,'개인적 손길'))n+=auSl(by,'개인적 손길')}n+=(P.combat.fld||[]).filter(f=>f.k==='dmg+').reduce((s,f)=>s+f.v,0)+efx(t.o).filter(e=>e.k==='taken').reduce((s,e)=>s+e.v,0)+efx(t.o).filter(e=>e.k==='hex'&&e.v.includes(type)).reduce((s,e)=>s+e.p,0);
   const a=AF.k&&unitOf(AF.k);if(a&&a.pc!==t.pc){const g=efx(t.o).find(e=>(e.k==='def12'||e.k==='mdef12')&&e.src&&hasHero(CH[e.src.slice(2)]||{},'오라술사의 굴절'));// 오라술사의 굴절: the warded take less from foes
     if(g){const c=CH[g.src.slice(2)],sp=(c.classes||[]).find(k=>k.name==='스피리티스트'),lv=sp?(sp.skills||[]).reduce((s,x)=>s+(+x.sl||0),0):0;n=Math.max(0,n-Math.max(Math.floor(lv/2),Math.floor((+c.level||0)/10)))}}
   return n}
@@ -5180,7 +5180,7 @@ function autoRes(u,o,tg){const r=AF.res;if(!r||!u)return;r.ch=r.ch||[];r.notes=r
     if(sk==='도발'&&t0){const ok=contested('mig','wlp');r.okSk=ok;if(ok)r.notes.push(`${t0.name} 격노 · 나를 대상에 넣어야 함`)}
     if(sk==='영혼 훔치기'&&e)for(const t of tg){const ok=!e.fumble&&(e.crit||e.total>=t.mdef),used=efx(t.o).some(x=>x.k==='stolen'&&x.v===u.k);r.notes.push(`${t.name}: ${used?'이미 훔쳤어요':ok?(+t.o.rank?'영혼의 보물 — GM이 정해요':`IP +${sl('영혼 훔치기')}`):'실패'} (${e.total} vs 마방 ${t.mdef})`);(r.steal||=[]).push(ok&&!used?t.k:null)}
     if(sk==='격려'&&t0){r.notes.push(`${t0.name} HP +${sl('격려')*5}`);r.ch.push(auG('at','다음 턴까지 한 단계',['dex','ins','mig','wlp'].map(a=>({l:ATTR[a],v:a})),0))}
-    if(sk==='마기챈트')auChantCh(u,r);if(sk==='결속과 소환')auArcCh(u,r);
+    if(sk==='마기챈트')auChantCh(u,r);if(sk==='결속과 소환')auArcCh(u,r);if(sk==='기원')auInvCh(u,r);
     if(sk==='주교의 칙령')r.ch.push(auG('fld','주교의 칙령 (다음 내 턴까지)',[{l:'모든 MP 비용 두 배',v:'mp2x'},{l:`모든 피해 +${sl('주교의 칙령')*3}`,v:'dmg+'}],0));
     if(sk==='왕의 성채')r.ch.push(auG('fld','왕의 성채 (다음 내 턴까지)',[{l:'아무도 회복 못 함',v:'noheal'},{l:`MP 회복 +${sl('왕의 성채')*5}`,v:'mp+'}],0));
     if(['주교의 칙령','왕의 성채'].includes(sk)&&hasHero(c,'타불라 라사')&&auCrisis(u)){const v=(+c.level||0)>=40?30:(+c.level||0)>=20?20:10;r.ch.push(auG('tabula','타불라 라사',[{l:`모든 적 HP −${v}`,v}],0))}
@@ -5301,7 +5301,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
   if(AF.act==='guard'&&u.pc){const t0=tg[0];if(t0&&sl('호위'))efxAdd(t0,{n:'호위',k:'resist',v:'all',on:t0.k,end:'turn'});
     if(!t0&&sl('버티기')){auHeal(u,'hp',sl('버티기')*Math.max(0,...(c.bonds||[]).map(bondStr)),'버티기');const a=pick('hold');if(a)efxAdd(u,{n:'버티기',k:'die',v:a,on:u.k,end:'turnEnd'})}}
   // skills
-  if(AF.act==='skill'){const sk=r.sk||'',t0=tg[0];autoDancePost(u,r);if(sk==='마기챈트')auChantPost(u,r);if(sk==='결속과 소환'){auArcPost(u,r);if(r.arcCircle)return chain({n:'비전의 원',acts:['spell']})}
+  if(AF.act==='skill'){const sk=r.sk||'',t0=tg[0];autoDancePost(u,r);if(sk==='마기챈트')auChantPost(u,r);if(sk==='기원')auInvPost(u,r);if(sk==='결속과 소환'){auArcPost(u,r);if(r.arcCircle)return chain({n:'비전의 원',acts:['spell']})}
     if(sk==='규탄'&&r.okSk&&t0){const got=auLose(t0,'mp',sl('규탄')*10,'규탄');const s=pick('st');if(s)auStatus(t0,s,'규탄');if(s==='enraged'&&got)auHeal(u,'mp',Math.floor(got/2),'드러난 신경')}
     if(sk==='도발'&&r.okSk&&t0){auStatus(t0,'enraged','도발');efxAdd(t0,{n:'도발',k:'taunt',v:u.k,end:'scene'})}
     if(sk==='영혼 훔치기')(r.steal||[]).forEach((k,i)=>{const t=k&&unitOf(k);if(!t)return;t.o.efx=[...efx(t.o),{n:'영혼 훔치기',k:'stolen',v:u.k,end:'scene'}];auSv(t);if(!+t.o.rank)auHeal(u,'ip',sl('영혼 훔치기'),'영혼 훔치기');else logText(u.name,`영혼 훔치기 — ${t.name}의 영혼의 보물 (GM이 레벨×${t.o.villain?50:30} 제니트 이하로)`)});
@@ -5483,6 +5483,42 @@ function auArcPost(u,r){const c=u.o,pick=id=>auPick(r,id),a=auArc(c),lv=(+c.leve
   if(d==='시간 정지')for(const t of T){if(t.o.status?.slow){t.o.lock=['all'];auSv(t);logText(t.name,'시간 정지 — 다음 턴 행동 −1')}else auStatus(t,'slow','시간 정지')}
   if(['단조','공간 이동','신탁'].includes(d))logText(u.name,`${d} — 효과는 GM과 처리해요`);
   if(d!=='none'&&!same&&auSl(u,'비전의 원')&&auArcane(c))r.arcCircle=1}
+// ---------- 기원 (인보커): scene wells (GM picks two) → invocation by SL tier → targets (연계 기원 adds more for MP 10 each) ----------
+// [name, tier(1 방출 · 2 저주 · 3 그 밖), kind, extra]  b: 20 dmg · h: +5 taken from types · heal: HP 30 · d: 10 dmg + status · m: MP −20 + status
+const AU_WELL={바람:['바람',[['에어로 블래스트',1,'b'],['에어로 헥스',2,'h',['번개','화염']],['산들바람',3,'heal'],['회오리',3,'d','dazed']]],
+  대지:['대지',[['지오 블래스트',1,'b'],['지오 헥스',2,'h',['바람','냉기']],['성장',3,'heal'],['유사',3,'d','slow']]],
+  화염:['화염',[['파이로 블래스트',1,'b'],['파이로 헥스',2,'h',['대지','냉기']],['폭발',3,'d','shaken'],['연기',3,'m','weak']]],
+  번개:['번개',[['일렉트로 블래스트',1,'b'],['일렉트로 헥스',2,'h',['대지','화염']],['정전기',3,'d','slow'],['천둥',3,'m','dazed']]],
+  물:['냉기',[['하이드로 블래스트',1,'b'],['하이드로 헥스',2,'h',['바람','번개']],['한기',3,'m','shaken'],['동상',3,'d','weak']]]};
+const AU_FIVE={바람:'ins',화염:'dex',번개:'mig',물:'wlp'};// 대지: any attribute
+function auInvLv(c){return(+c.level||0)>=40?2:(+c.level||0)>=20?1:0}
+function auInvExp(u){return auWeapons(u.o).some(w=>['비전','활','격투','도리깨','검','투척'].includes(w.cat))?auSl(u,'샘의 확장'):0}
+function auInvList(u){const c=u.o,sl=auSl(u,'기원'),W=P.combat.wells?.length?[...new Set([...P.combat.wells,...(hasHero(c,'내면의 샘')&&c.innerWell?[c.innerWell]:[])])]:Object.keys(AU_WELL);
+  return W.flatMap(w=>AU_WELL[w][1].filter(x=>x[1]<=sl).map(x=>({w,ty:AU_WELL[w][0],n:x[0],tier:x[1],kind:x[2],ex:x[3]})))}
+function auInvCh(u,r){const c=u.o,G=(id,l,o,s=null,m=1)=>r.ch.push(auG(id,l,o,s,m)),lv=auInvLv(c),xp=auInvExp(u),chain=auSl(u,'연계 기원');
+  r.notes.push(`기원 — 행동 하나, MP 5${chain?` (+대상 하나마다 MP 10, 최대 ${chain}명 더)`:''}`);
+  G('wells','이 장면의 샘 둘 (GM이 정해요)',Object.keys(AU_WELL).map(w=>({l:w,v:w})),(P.combat.wells||[]).map(w=>Object.keys(AU_WELL).indexOf(w)),2);
+  if(hasHero(c,'내면의 샘'))G('inner','내면의 샘 (휴식할 때 고른 샘)',Object.keys(AU_WELL).map(w=>({l:w,v:w})),c.innerWell?Object.keys(AU_WELL).indexOf(c.innerWell):null);
+  const amt=x=>x.kind==='b'?`${x.ty} ${20+5*lv+xp}`:x.kind==='h'?`${x.ex.join('·')} 받는 피해 +${5+xp}`:x.kind==='heal'?`HP ${30+10*lv}`:x.kind==='d'?`${x.ty} ${10+5*lv} · ${STATUS[x.ex][0]}`:`MP −${20+10*lv} · ${STATUS[x.ex][0]}`;
+  G('inv','기원',auInvList(u).map(x=>({l:`${x.n} · ${['','방출','저주','기타'][x.tier]} · ${amt(x)}`,v:x.n})),null);
+  G('itg','대상',auUnits().filter(t=>t.o.hp>0).map(t=>({l:t.name,v:t.k})),null,1+chain);
+  if(hasHero(c,'다섯 샘의 힘')){G('five','다섯 샘의 힘 · 함께 강해질 아군',pcs().filter(p=>p!==c).map(p=>unitOf('c:'+p.id)).filter(t=>t&&t.o.hp>0).map(t=>({l:t.name,v:t.k})),null);G('fiveA','다섯 샘의 힘 · 대지일 때 능력치',Object.entries(AB).map(([k,l])=>({l,v:k})),null)}}
+function auInvPost(u,r){const c=u.o,pick=id=>auPick(r,id),n=pick('inv');
+  const wl=pick('wells');if(wl?.length===2)P.combat.wells=[...wl];if(hasHero(c,'내면의 샘')&&pick('inner'))c.innerWell=pick('inner');
+  if(!n)return;const x=auInvList(u).find(i=>i.n===n);if(!x){toast('이 장면에 없는 샘이에요',1);return}
+  const T=[].concat(pick('itg')||[]).map(unitOf).filter(Boolean);if(!T.length){toast('대상을 골라 주세요',1);return}
+  let mp=5+10*(T.length-1);if(P.combat.fld?.some(f=>f.k==='mp2x'))mp*=2;if((+c.mp||0)<mp){toast(`MP가 부족해요 (필요 ${mp})`,1);return}c.mp-=mp;saveC();
+  const lv=auInvLv(c),xp=auInvExp(u),sp=auSl(u,'원소의 조화')&&auUnits().some(t=>auSp(t.o)==='정령')?5*auSl(u,'원소의 조화'):0;
+  logText(u.name,`기원 — ${x.w}의 샘 · ${x.n} (MP −${mp}) → ${T.map(t=>t.name).join(', ')}`);abilFx(u.k,x.n,'기원','',T.map(t=>t.name));
+  for(const t of T){
+    if(x.kind==='b')applyDmg(t.k,20+5*lv+xp,x.ty,{});
+    if(x.kind==='h')efxAdd(t,{n:x.n,k:'hex',v:x.ex,p:5+xp,on:u.k,end:'turn',src:u.k});// until the invoker's next turn starts
+    if(x.kind==='heal')auHeal(t,'hp',30+10*lv+sp,x.n);
+    if(x.kind==='d'){applyDmg(t.k,10+5*lv,x.ty,{});if(t.o.hp>0)auStatus(t,x.ex,x.n)}
+    if(x.kind==='m'){auLose(t,'mp',20+10*lv,x.n);auStatus(t,x.ex,x.n)}}
+  if(hasHero(c,'다섯 샘의 힘')){const a=AU_FIVE[x.w]||pick('fiveA');if(!a)toast('다섯 샘의 힘 — 대지는 능력치를 골라야 해요',1);else{
+    for(const t of auUnits())if(efx(t.o).some(e=>e.n==='다섯 샘의 힘'))efxDel(t,e=>e.n==='다섯 샘의 힘');// using it again replaces the old boost
+    for(const t of[u,unitOf(pick('five'))].filter(Boolean)){t.o.efx=[...efx(t.o),{n:'다섯 샘의 힘',k:'die',v:a,end:'scene'}];auSv(t);logText(t.name,`다섯 샘의 힘 — ${AB[a]} 한 단계 ↑`)}}}}
 /* ================= end combat automation ================= */
 // core inventory: potion 50 HP, elixir 50 MP, tonic clears one status, elemental shard 10 damage of a chosen type, tent = rest (GM runs it)
 function itemEffect(it,t,status,type,actor){let msg=`${it.n} 사용 (IP −${it.ip})`;if(!t)return msg;const tu=t.o,max=t.pc?derive(tu).maxHp:tu.maxHp,mmax=t.pc?derive(tu).maxMp:tu.maxMp;
