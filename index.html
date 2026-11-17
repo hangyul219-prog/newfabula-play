@@ -5644,6 +5644,8 @@ html[data-theme="ff"] .pin.on .ic,html[data-theme="ff"] .pin:hover .ic{border-co
 html[data-theme="ff"] #ptok :is(.rg,.rg2){border-color:rgba(255,255,255,.7)!important;box-shadow:none!important;filter:none!important}
 html[data-theme="ff"] #ptok .core{background:#fff!important;box-shadow:0 0 0 2px #13208a!important;filter:none!important}
 html[data-theme="ff"] #ptok .tk{filter:none!important}
+/* command panel: name and HP/MP/IP are already in the party window, so the panel keeps only its label */
+html[data-theme="ff"] .actx .ax-head b,html[data-theme="ff"] .actx .ax-stat{display:none!important}
 </style>
 <style id="oct-classic">
 /* ===== OCTOPATH (HD-2D) MENUS: taken from Octopath Traveler I/II screenshots — dark translucent menu panels over the blurred scene,
@@ -5709,7 +5711,8 @@ html[data-theme="octo"] .band .nm,html[data-theme="octo"] .band .nmi{background:
 html[data-theme="octo"] .band.sel{background:linear-gradient(90deg,rgba(60,120,200,0),rgba(40,95,170,.55) 35%)!important}
 html[data-theme="octo"] .band.cr{box-shadow:none!important}
 /* command list: dark plates per row, blue plate + glove on the chosen one */
-html[data-theme="octo"] .actx .act-box{background:none!important;border:0!important;box-shadow:none!important}
+html[data-theme="octo"] .actx .act-box{background:var(--otc-panel)!important;border:0!important;border-top:1px solid var(--otc-line)!important;border-bottom:1px solid var(--otc-line)!important;box-shadow:none!important;backdrop-filter:blur(6px)!important}
+html[data-theme="octo"] .dk-h b{white-space:nowrap}
 html[data-theme="octo"] :is(.actx .cmd,.axo){background:none!important;border:0 solid transparent!important;border-width:0 13px!important;border-image:var(--otc-btn) 0 54 fill / 0 13px stretch!important;box-shadow:none!important;transform:none!important;margin:2px 0}
 html[data-theme="octo"] :is(.actx .cmd:hover:not(:disabled),.axo:hover:not(:disabled),.axo.on){border-image:var(--otc-on) 0 54 fill / 0 13px stretch!important}
 html[data-theme="octo"] :is(.actx .cmd:hover:not(:disabled),.axo:hover:not(:disabled),.axo.on):before{content:""!important;position:absolute!important;left:-40px!important;top:50%!important;margin-top:-9px;width:36px!important;height:18px!important;background:var(--otc-cur) center/contain no-repeat!important;color:transparent!important;transform:none!important;animation:otcbob 1.1s ease-in-out infinite}
@@ -5760,6 +5763,11 @@ html[data-theme="octo"] .arc :is(small,.nd-k){color:var(--parch2)!important}
 html[data-theme="octo"] .arc-ico{background:none!important;border:0!important;clip-path:none!important;height:auto!important;padding-top:0!important;margin-top:0!important}
 html[data-theme="octo"] .arc-ico .gi{filter:none!important}
 html[data-theme="octo"] .top :is(.btn,.tbtn,.wbtn)+:is(.btn,.tbtn,.wbtn){margin-left:0}
+/* command rows sit indented so the glove stays inside the command panel */
+html[data-theme="octo"] .actx .cmd{margin-left:30px!important;width:calc(100% - 30px)!important}
+html[data-theme="octo"] .actx .cmd:hover:not(:disabled):before{left:-42px!important;width:34px!important;height:17px!important;margin-top:-8px!important}
+/* command panel: name and HP/MP/IP are already in the party window, so the panel keeps only its label */
+html[data-theme="octo"] .actx .ax-head b,html[data-theme="octo"] .actx .ax-stat{display:none!important}
 </style>
 </body>
 </html>
