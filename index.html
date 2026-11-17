@@ -4183,7 +4183,7 @@ function dockHTML(H,F){const u=[...H,...F].find(x=>x.k===SEL);const C=P.combat;c
       ${inP?`<button class="btn sm" data-act="leave" data-id="${me.id}">전장에서 빠지기</button>`:`<button class="btn sm gold" data-act="joinme">전장에 참가</button>`}
       ${inP&&C.enemies.length?`<button class="btn sm" data-act="initroll">선제권 판정</button>`:''}</div></div>`})();
   const clocks=`<div><div class="dk-h"><b>시계</b><i>CLOCKS</i><span class="sp"></span><button class="btn x" data-act="addclock"><i class="gi" data-ic="clock"></i> 추가</button></div><div class="clocks">
-    ${P.clocks.map((k,i)=>`<div class="clock"><div class="face" data-act="tick" data-i="${i}" title="클릭: 한 칸 채우기 / Shift+클릭·우클릭: 한 칸 줄이기" style="background:${clockBg(k)}"></div><b>${esc(k.name)}</b><span class="muted">${k.filled}/${k.size}</span><button class="btn x" data-act="untick" data-i="${i}" title="한 칸 줄이기"${k.filled?'':' disabled'}>−1</button><button class="btn x" data-act="delclock" data-i="${i}">삭제</button></div>`).join('')||'<span class="muted">진척이나 위기를 시계로 표시해요.</span>'}</div></div>`;
+    ${P.clocks.map((k,i)=>`<div class="clock"><div class="face" data-act="tick" data-i="${i}" title="클릭: 한 칸 채우기 / Shift+클릭·우클릭: 한 칸 줄이기" style="background:${clockBg(k)}"></div><b>${esc(k.name)}</b><span class="muted">${k.filled}/${k.size}</span><button class="btn x" data-act="untick" data-i="${i}" title="한 칸 줄이기"${k.filled?'':' disabled'}>−1</button><button class="btn x" data-act="delclock" data-i="${i}">삭제</button></div>`).join('')||(autoClocksHTML()?'':'<span class="muted">진척이나 위기를 시계로 표시해요.</span>')}${autoClocksHTML()}</div></div>`;
   return panel+tools+clocks}
 function unitPanel(u){const o=u.o,k=u.k,acted=P.combat.acted[k];const aff=u.pc?[]:Object.entries(o.aff||{}).filter(([,v])=>v);
   const stats=u.pc?`<span>방어 <b>${u.d.def}</b></span><span>마방 <b>${u.d.mdef}</b></span><span>선제 <b>${u.d.init>=0?'+':''}${u.d.init}</b></span><span>${gi('ip')}IP <b>${u.ip}/${u.maxIp}</b></span><span>${Object.keys(ATTR).map(a=>`${gi(a)}${AB[a]} d${u.d.cur[a]}`).join(' · ')}</span>`
@@ -5415,6 +5415,15 @@ function auGardenTurn(u){const c=u.o,g=auGarden(c);if(!g)return;const r=AF.res||
   if(g.n==='치유 백합'){if(n===1)allies.forEach(t=>{for(const s of['poisoned','slow','weak'])if(t.o.status?.[s]){t.o.status[s]=false;auSv(t)}});else allies.forEach(t=>auHeal(t,'hp',heal(15+sl),g.n))}
   if(g.n==='은자의 붓꽃'){const t=unitOf(pick('gfoe'));if(t){t.o.reveal=true;saveP();logText(t.name,`${g.n} — 정보 공개${n>=2?' (상성 포함)':''}`)}}
   if(g.n==='순례자 가자니아'){if(n<=2){const t=unitOf(pick('gpc'))||u;auHeal(t,'ip',2,g.n)}else allies.forEach(t=>auHeal(t,'ip',1,g.n))}}
+// brain clock (사이킥 재능) and growth clock (엽록술) shown as read-only clocks in the combat dock
+function autoClocksHTML(){const out=[];for(const c of pcs()){const d=derive(c);if(d.sl('사이킥 재능'))out.push([c,'brain',c.name+' · 두뇌 시계',auBrain(c),'재능을 쓰면 1칸 · 재능 비용은 찬 칸×5 MP (최소 5)']);
+    if(d.sl('엽록술')){const g=auGarden(c);out.push([c,'garden',c.name+' · 성장 시계'+(g?` (${g.n})`:' (씨앗 없음)'),g?g.v:0,'내 턴이 끝날 때 1칸 · 4칸이면 씨앗이 정원을 떠나요'])}}
+  return out.map(([c,k,n,v,t])=>{const can=GM||mineK('c:'+c.id),dis=k==='garden'&&!auGarden(c);return`<div class="clock au-clock" title="${esc(t)} · 자동으로 움직이고, 필요하면 손으로 바꿀 수 있어요"><div class="face"${can&&!dis?` data-act="auclk" data-k="c:${c.id}" data-c="${k}" data-v="1"`:''} style="background:${clockBg({filled:v,size:4})}"></div><b>${esc(n)}</b><span class="muted">${v}/4 · 자동</span>${can?`<button class="btn x" data-act="auclk" data-k="c:${c.id}" data-c="${k}" data-v="-1"${v&&!dis?'':' disabled'}>−1</button>`:''}</div>`}).join('')}
+// hand adjustment of the automatic clocks (the rules still run on whatever value they hold)
+function autoClockAdj(k,kind,d){const u=unitOf(k);if(!u||!(GM||mineK(k)))return;const c=u.o;
+  if(kind==='brain'){const v=clamp(auBrain(c)+d,0,4);c.efx=[...efx(c).filter(e=>e.k!=='brain'),{n:'두뇌 시계',k:'brain',v,end:'scene'}];saveC();logText(u.name,`두뇌 시계 ${v}/4 (직접 조정)`)}
+  if(kind==='garden'){const g=auGarden(c);if(!g)return;g.v=clamp(g.v+d,0,4);saveC();logText(u.name,`성장 시계 ${g.v}/4 (직접 조정)`);if(g.v>=4)auSeedLeave(u,g,'성장 시계가 참')}
+  if(tab==='combat')renderCombat()}
 /* ================= end combat automation ================= */
 // core inventory: potion 50 HP, elixir 50 MP, tonic clears one status, elemental shard 10 damage of a chosen type, tent = rest (GM runs it)
 function itemEffect(it,t,status,type,actor){let msg=`${it.n} 사용 (IP −${it.ip})`;if(!t)return msg;const tu=t.o,max=t.pc?derive(tu).maxHp:tu.maxHp,mmax=t.pc?derive(tu).maxMp:tu.maxMp;
@@ -5759,7 +5768,7 @@ document.addEventListener('click',async ev=>{const dt=ev.target.closest('[data-d
   case'dmg':case'heal':{const k=t.dataset.k,n=Math.abs(+byId('n-'+k).value||0);if(!n){toast('수치를 입력하세요',1);break}
     if(a==='dmg')applyDmg(k,n,byId('t-'+k).value);else{const{c,pc}=target(k);const max=pc?derive(c).maxHp:c.maxHp,was=c.hp;c.hp=clamp(c.hp+n,0,Math.max(max,+c.hp||0));logText(c.name,`HP ${c.hp-was} 회복${pc||c.reveal?` → ${c.hp}/${max}`:''}`);pc?saveC():saveP();renderCombat()}break}
   case'mp':{const k=t.dataset.k,n=Math.abs(+byId('n-'+k).value||0);if(!n){toast('수치를 입력하세요',1);break}const{c,pc}=target(k);const max=pc?derive(c).maxMp:c.maxMp;c.mp=clamp(c.mp+n*+t.dataset.s,0,Math.max(max,+c.mp||0));logText(c.name,`MP ${t.dataset.s>0?'+':'−'}${n}${pc||c.reveal?` → ${c.mp}/${max}`:''}`);pc?saveC():saveP();renderCombat();break}
-  case'fly':autoFlyToggle(t.dataset.k);break;case'acted':C.acted[t.dataset.k]=!C.acted[t.dataset.k];if(C.acted[t.dataset.k])unlock(t.dataset.k);saveP();renderCombat();autoRound();break;
+  case'fly':autoFlyToggle(t.dataset.k);break;case'fly':autoFlyToggle(t.dataset.k);break;case'auclk':autoClockAdj(t.dataset.k,t.dataset.c,+t.dataset.v);break;case'acted':C.acted[t.dataset.k]=!C.acted[t.dataset.k];if(C.acted[t.dataset.k])unlock(t.dataset.k);saveP();renderCombat();autoRound();break;
   case'lock':{const[tp,id]=t.dataset.p.split(':');const o=tp==='c'?CH[id]:C.enemies.find(e=>e.id===id);const L=o.lock=o.lock||[],a=t.dataset.k,i=L.indexOf(a);i>=0?L.splice(i,1):L.push(a);tp==='c'?saveC():saveP();renderCombat();break}
   case'endround':C.round++;C.acted={};saveP();logText('GM',`라운드 ${C.round} 시작`);renderCombat();break;
   case'first':C.first=C.first==='pc'?'npc':'pc';saveP();renderCombat();break;
