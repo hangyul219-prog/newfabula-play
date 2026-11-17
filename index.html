@@ -2971,7 +2971,7 @@ const ASSETS={keys:['fu.chars','fu.play','fu.audio'],pending:new Map(),uploads:n
  },
  saved(){const ids=new Set();for(const k of this.keys)this.refs(LS.get(k,{}),ids);return ids},
  evict(id){const u=IMG.cache.get(id);if(u?.startsWith('blob:'))URL.revokeObjectURL(u);IMG.cache.delete(id);if(typeof TRIMV!=='undefined'){const v=TRIMV.get(id);if(v?.startsWith('blob:'))URL.revokeObjectURL(v);TRIMV.delete(id)}},
- effects(events,ids){for(const e of Array.isArray(events)?events:[])if(e&&Date.now()-(+e.t||0)<(Math.max(15,(+e.dur||4)+2))*1000)this.refs(e,ids);return ids},
+ effects(events,ids){for(const e of Array.isArray(events)?events:[])if(e&&Date.now()+(typeof NET==='undefined'?0:NET.skew)-(+e.t||0)<(Math.max(15,(+e.dur||4)+2))*1000)this.refs(e,ids);return ids},
  drafts(){const ids=new Set();if(typeof NW!=='undefined'&&NW)this.refs(NW.o,ids);if(typeof CI!=='undefined'&&CI)this.refs(CI,ids);
   const m=document.getElementById('modal');if(m?.innerHTML&&m._foe&&m.querySelector('[data-act="foesave"]'))this.refs(m._foe,ids);
   for(const el of document.querySelectorAll('.crop[data-asset]'))ids.add(el.dataset.asset);this.effects(LS.get('fu.fx',[]),ids);return ids;
@@ -3074,7 +3074,6 @@ const NET={room:'',db:null,on:false,live:false,last:{},skew:0,
     for(const c of ks)x[c]=this.relist(x[c]);return x},
   nest(f){const o={};for(const[p,x]of Object.entries(f)){const ks=p.split('/');let t=o;for(const c of ks.slice(0,-1))t=t[c]=t[c]||{};t[ks.at(-1)]=x}return o},
   same(a,b){const ka=Object.keys(a);return ka.length===Object.keys(b).length&&ka.every(p=>a[p]===b[p])},
-  recv(k,rf){this.last[k]=rf;this.keep(k);if(this.same(this.flat(k,LS.get(k,null)),rf))return;try{SYNC.receive(k,this.unflat(k,rf))}catch(e){console.warn('recv',k,e)}},
   h(x){let v=5381;for(let i=0;i<x.length;i++)v=(v*33^x.charCodeAt(i))|0;return v.toString(36)+'.'+x.length.toString(36)},
   // remembers what each path looked like at the last sync, so edits made while disconnected can be told apart on rejoin
   keep(k){const B=LS.get('fu.net.base',{});if(B.room!==this.room){B.room=this.room;B.k={}}B.k[k]=Object.fromEntries(Object.entries(this.last[k]).map(([p,x])=>[p,this.h(x)]));LS.set('fu.net.base',B)},
@@ -3101,23 +3100,7 @@ const NET={room:'',db:null,on:false,live:false,last:{},skew:0,
           if(first){first=false;this.first(k,rf,B0,code);if(!--pending)this.syncImgs();return}
           this.recv(k,rf)},e=>{toast('방 데이터를 읽지 못했어요: '+(e.code||e.message),1)})}
       toast(`방 ${code}에 접속했어요`)}
-    catch(e){console.error(e);toast('방에 접속하지 못했어요: '+(e.code||e.message),1);this.leave();this.badge()}},
-  push(k,v){if(!this.on||!this.last[k])return;// before the room's first answer, edits wait for first()
-    const f=this.flat(k,v),L=this.last[k],r=this.ref('k/'+this.rk(k));this.last[k]=f;this.keep(k);
-    const wr=pr=>pr.catch(e=>toast('온라인 저장 실패: '+(e.code||e.message),1));
-    if(''in f||''in L){if(L['']!==f[''])wr(''in f?r.set(f['']):r.set(this.nest(f)));return}
-    const u={};for(const p in f)if(L[p]!==f[p])u[p]=f[p];const set=Object.keys(u);
-    for(const p in L)if(!(p in f)&&!set.some(q=>q.startsWith(p+'/')||p.startsWith(q+'/')))u[p]=null;// a write to an ancestor/descendant already replaces it
-    if(Object.keys(u).length)wr(r.update(u))},
-  async putImg(id,blob){if(!this.on||!blob)return;const room=this.room,base=this.db.ref('fabula/rooms/'+room);const u=await new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>ok('');r.readAsDataURL(blob)});
-    if(u)await base.child('img/'+this.safe(id)).set(u).then(()=>base.child('imgidx/'+this.safe(id)).set(true)).catch(e=>{throw e})},
-  async getImg(id){if(!this.on)return null;try{const u=(await this.ref('img/'+this.safe(id)).get()).val();if(!u)return null;const b=await(await fetch(u)).blob();await IMG.put(b,id,true);return b}catch{return null}},
-  async syncImgs(){// upload images this browser has that the room doesn't
-    const idx=(await this.ref('imgidx').get()).val()||{},db=await IMG.open();
-    const ids=await new Promise(ok=>{const q=db.transaction('img').objectStore('img').getAllKeys();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>ok([])});
-    const refs=JSON.stringify([LS.get('fu.chars',{}),LS.get('fu.play',{})]);// only images still in use, so deleted ones don't come back
-    for(const id of ids)if(!idx[this.safe(id)]&&refs.includes(id))await this.putImg(id,await IMG.blob(id))},
-  delImg(id){if(this.on){this.ref('img/'+this.safe(id)).remove();this.ref('imgidx/'+this.safe(id)).remove()}}};
+    catch(e){console.error(e);toast('방에 접속하지 못했어요: '+(e.code||e.message),1);this.leave();this.badge()}},};
 /* Shared media reads never include the room's image collection. Locks contain only a small lease. */
 NET.mediaEpoch={};NET.mediaQueue=new Map();NET.outbox={};NET.wire={};
 NET.mediaRef=function(room,p){return this.db.ref('fabula/rooms/'+room+'/'+p)};
@@ -3286,8 +3269,8 @@ function saveVol(){LS.set('fu.vol',VOL)}
 function sharedEdit(key,def,fn){const v=LS.get(key,def);fn(v);SYNC.set(key,v);dispatchEvent(new CustomEvent('fu-local',{detail:key}));return v}
 let _fxl=null;function fxL(){if(!_fxl||!_fxl.isConnected){_fxl=document.createElement('div');_fxl.id='fxlayer';document.body.append(_fxl)}return _fxl}
 const FXB={seen:new Set(LS.get('fu.fx',[]).map(e=>e.id)),
-  emit(ev){ev.id=uid();ev.t=Date.now();const L=LS.get('fu.fx',[]).filter(e=>Date.now()-e.t<60000);L.push(ev);this.seen.add(ev.id);SYNC.set('fu.fx',L.slice(-30));this.play(ev,true)},
-  pull(){for(const ev of LS.get('fu.fx',[]))if(!this.seen.has(ev.id)){this.seen.add(ev.id);if(Date.now()-ev.t<15000)this.play(ev,false)}},
+  emit(ev){const now=Date.now()+NET.skew;ev.id=uid();ev.t=now;const L=LS.get('fu.fx',[]).filter(e=>now-e.t<60000);L.push(ev);this.seen.add(ev.id);SYNC.set('fu.fx',L.slice(-30));this.play(ev,true)},
+  pull(){for(const ev of LS.get('fu.fx',[]))if(!this.seen.has(ev.id)){this.seen.add(ev.id);if(Date.now()+NET.skew-ev.t<15000)this.play(ev,false)}},
   play(ev,mine){try{FXP[ev.type]?.(ev,mine)}catch(e){console.warn(e)}}};
 addEventListener('storage',e=>{if(e.key==='fu.fx')FXB.pull()});
 // ability name over the user's battle token in every play window (the sheet only sends it)
@@ -4014,7 +3997,7 @@ document.addEventListener('input',e=>{if(e.target.id==='line')typSet(!!e.target.
 /* quoted chat pops a bubble over the speaker's battle sprite: "…" spoken line, '…' inner thought */
 const QUOTE=/^\s*(?:["“”](.+)["“”]|['‘’](.+)['‘’])\s*$/s,SAID=new Set(LS.get('fu.chat',[]).map(m=>m.id));
 function sayPump(){for(const m of LS.get('fu.chat',[])){if(SAID.has(m.id))continue;SAID.add(m.id);const q=!m.roll&&QUOTE.exec(m.text||'');
-  if(!q||Date.now()-m.t>=15000)continue;if(!byId('arena')){if(tab==='map')mapSay(m,q);continue}const k=m.at||m.who;let el=byId('units')?.querySelector(`[data-k="${CSS.escape(k)}"]`),host=null;
+  if(!q||Date.now()+NET.skew-m.t>=15000)continue;if(!byId('arena')){if(tab==='map')mapSay(m,q);continue}const k=m.at||m.who;let el=byId('units')?.querySelector(`[data-k="${CSS.escape(k)}"]`),host=null;
   // a speaker with no sprite on the field (spectator, hero outside the party) talks from the top of the arena
   if(!el){byId('arena').querySelector('.sayhost')?.remove();host=el=document.createElement('div');el.className='spr sayhost';byId('arena').append(el)}
   const[t0,id]=k.split(':'),face=t0==='c'?(CH[id]?.portrait||CH[id]?.full||CH[id]?.stand?.[0]?.img):t0==='e'?P.combat.enemies.find(e=>e.id===id)?.img:'';
