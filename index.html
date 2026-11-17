@@ -3746,7 +3746,7 @@ for(const s of gearTexts(c)){
  // The weakness clause in these items omits the repeated word '피해'.
  if(new RegExp(String(type).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?: 피해)?에 취약성').test(s))vu=true;
 }return ab?'ab':im?'im':rs&&vu?'':vu?'vu':rs?'rs':''}
-function damageResult(t,n,type,opt={}){n=Math.max(0,Number.isFinite(+n)?+n:0);const o=t.o,pc=t.pc;if(!opt.untyped)n=autoTaken(t,n,type,opt);
+function damageResult(t,n,type,opt={}){n=Math.max(0,Number.isFinite(+n)?+n:0);const o=t.o,pc=t.pc;if(!opt.untyped){type=autoTType(t,type);n=autoTaken(t,n,type,opt)}
   if(opt.untyped)return{n:Math.floor(n),a:'',note:' · 상성 무시'};
   const raw=autoAff(t,type,pc?gearAff(o,type):o.aff?.[type]||''),a=opt.ignoreAbs&&raw==='ab'?'':raw,g=o.guard||pc&&heroResist(o,type,LS.get('fu.play',{}).combat?.round);
   if(pc){const d=derive(o),eq=effectiveEquip(o);if(eq.shield?.name||eq.armor?.martial)n=Math.max(0,n-d.sl('방어 숙련'));if(hasHero(o,'슬로모션')&&!eq.shield?.name&&!eq.armor?.martial)n=Math.max(0,n-d.sl('회피'));}
@@ -5015,14 +5015,15 @@ function fldAdd(f){const C=P.combat,on=f.on;C.fld=[...(C.fld||[]).filter(x=>x.n!
 function efxTick(k,phase){const C=P.combat,end=phase==='start'?'turn':'turnEnd',gone=e=>e.on===k&&e.end===end&&C.round>=e.at;
   for(const t of auUnits())if(efx(t.o).some(gone)){const old=efx(t.o).filter(gone);t.o.efx=efx(t.o).filter(e=>!gone(e));auSv(t);logText(t.name,`효과 종료 — ${[...new Set(old.map(e=>e.n))].join(', ')}`)}
   if((C.fld||[]).some(gone)){C.fld=C.fld.filter(e=>!gone(e));saveP()}}
-const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,garden:v=>`성장 ${v}/4`,gtype:v=>`정원 피해 ${v}`,grounded:()=>'비행 불가',brain:v=>`두뇌 ${v}/4`,symbol:v=>v,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
+const AU_TAGK={resist:v=>v==='all'?'모든 피해 저항':v+' 저항',immune:v=>(STATUS[v]?.[0]||v)+' 면역',anom:()=>'변칙',def12:()=>'방어 12',mdef12:()=>'마방 12',rdef:()=>'원거리 방어 +2',die:v=>(ATTR[v]||v)+' ▲',wtype:v=>v+' 무기',survive:()=>'자비',mirror:()=>'거울',haste:v=>`가속 ${v}`,vivace:v=>`${AB[v]} 시계+1`,loseRes:v=>`${v} 저항 상실`,ttype:v=>`받는 피해 ${v}`,dr:v=>`물리 −${v}`,pcrit:()=>'파워 코드',theme:v=>`주제가 ${v}`,reso:()=>'공명',garden:v=>`성장 ${v}/4`,gtype:v=>`정원 피해 ${v}`,grounded:()=>'비행 불가',brain:v=>`두뇌 ${v}/4`,symbol:v=>v,atype:v=>`피해 ${v}`,hydra:()=>'히드라',taken:v=>`받는 피해 +${v}`,taunt:()=>'도발됨',hidden:()=>'은신 대상',amark:()=>'비전 표식',danced:()=>'춤',courage:v=>`용기 ${v}`,momentum:v=>`기세 ${v}`,tax:v=>`${v} 시 MP 10`,stolen:()=>''};
 function efxTag(o){return efx(o).filter(e=>AU_TAGK[e.k]?.(e.v)).map(e=>`<em class="tipd" data-tip="${esc(e.n+' · '+AU_TAGK[e.k](e.v)+(e.end==='scene'?' · 장면 끝까지':e.end==='once'?' · 한 번':' · 다음 턴까지'))}">${esc(AU_TAGK[e.k](e.v))}</em>`).join('')}
 // ---------- hooks into damage / defence / dice ----------
 function autoImmune(o,k){const ch=symOf(o,'변화의 상징');if(ch&&ch.p===k)return ch.p2==='gain';return efx(o).some(e=>e.k==='immune'&&e.v===k)||hasHero(o,'상태 이상 면역')&&o.heroPick?.immune===k||auSeedImm(o,k)?true:null}
 function autoAff(t,type,a){const E=efx(t.o);if(E.some(e=>e.k==='anom')&&(a==='im'||a==='ab')){t.anomUsed=true;return'vu'}
   const rs=E.some(e=>e.k==='resist'&&(e.v==='all'||e.v===type))||auSeedRs(t,type)||symOf(t.o,'수호의 상징')?.p===type||t.pc&&['어둠','독'].includes(type)&&auSl(t,'어둠의 피')>0&&auCrisis(t);
-  return rs?(a==='vu'?'':a||'rs'):a}
-function autoTaken(t,n,type,opt){if(!n)return n;{const w=symOf(t.o,'약점의 상징');if(w&&w.p===type)n+=5;const s=symOf(t.o),by=s&&unitOf(s.src);if(by&&by.pc!==t.pc&&auSl(by,'개인적 손길'))n+=auSl(by,'개인적 손길')}n+=(P.combat.fld||[]).filter(f=>f.k==='dmg+').reduce((s,f)=>s+f.v,0)+efx(t.o).filter(e=>e.k==='taken').reduce((s,e)=>s+e.v,0);
+  if(a==='rs'&&E.some(e=>e.k==='loseRes'&&e.v===type))a='';const th=E.find(e=>e.k==='theme');const rs2=rs||th&&AU_KEY[th.v]?.[0]===type;
+  return rs2?(a==='vu'?'':a||'rs'):a}
+function autoTaken(t,n,type,opt){if(!n)return n;if(type==='물리'){const dr=efx(t.o).find(e=>e.k==='dr');if(dr)n=Math.max(0,n-dr.v)}{const w=symOf(t.o,'약점의 상징');if(w&&w.p===type)n+=5;const s=symOf(t.o),by=s&&unitOf(s.src);if(by&&by.pc!==t.pc&&auSl(by,'개인적 손길'))n+=auSl(by,'개인적 손길')}n+=(P.combat.fld||[]).filter(f=>f.k==='dmg+').reduce((s,f)=>s+f.v,0)+efx(t.o).filter(e=>e.k==='taken').reduce((s,e)=>s+e.v,0);
   const a=AF.k&&unitOf(AF.k);if(a&&a.pc!==t.pc){const g=efx(t.o).find(e=>(e.k==='def12'||e.k==='mdef12')&&e.src&&hasHero(CH[e.src.slice(2)]||{},'오라술사의 굴절'));// 오라술사의 굴절: the warded take less from foes
     if(g){const c=CH[g.src.slice(2)],sp=(c.classes||[]).find(k=>k.name==='스피리티스트'),lv=sp?(sp.skills||[]).reduce((s,x)=>s+(+x.sl||0),0):0;n=Math.max(0,n-Math.max(Math.floor(lv/2),Math.floor((+c.level||0)/10)))}}
   return n}
@@ -5030,7 +5031,7 @@ function autoSurvive(t,hp){if(hp>0)return hp;const o=t.o,m=efx(o).find(e=>e.k===
   if(m){efxDel(t,e=>e===m);logText(t.name,`${m.n} — HP 1로 버팀`);return 1}
   if(t.pc&&hasHero(o,'불굴')&&!efx(o).some(e=>e.k==='usedFall')){o.efx=[...efx(o),{n:'불굴',k:'usedFall',end:'scene'}];logText(t.name,'불굴 — HP 1로 버팀 (장면에 한 번)');return 1}
   return 0}
-function autoHurt(t,dmg,type){if(t.pc&&dmg>0&&auTh(t.o,'프테로테리아')&&['바람','번개','냉기'].includes(type)&&!efx(t.o).some(e=>e.k==='grounded'))efxAdd(t,{n:'프테로테리아',k:'grounded',on:t.k,end:'turn'});if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수');if(efx(t.o).some(e=>e.k==='hydra')&&t.o.hp>0)auHeal(t,(+t.o.hp||0)<auMax(t,'hp')?'hp':'mp',5,'히드라의 춤')}// shortcut: 히드라 picks HP unless full; a pick prompt would interrupt the attacker's turn
+function autoHurt(t,dmg,type){if(dmg>0){if(efx(t.o).some(e=>e.k==='ttype'))efxDel(t,e=>e.k==='ttype');const rs=efx(t.o).find(e=>e.k==='reso'),by=rs&&unitOf(rs.v);if(by)auHeal(by,'mp',auSl(by,'공명'),'공명')}if(t.pc&&dmg>0&&auTh(t.o,'프테로테리아')&&['바람','번개','냉기'].includes(type)&&!efx(t.o).some(e=>e.k==='grounded'))efxAdd(t,{n:'프테로테리아',k:'grounded',on:t.k,end:'turn'});if(!t.pc||dmg<=0)return;const sl=auSl(t,'MP 흡수');if(sl)auHeal(t,'mp',sl*2,'MP 흡수');if(efx(t.o).some(e=>e.k==='hydra')&&t.o.hp>0)auHeal(t,(+t.o.hp||0)<auMax(t,'hp')?'hp':'mp',5,'히드라의 춤')}// shortcut: 히드라 picks HP unless full; a pick prompt would interrupt the attacker's turn
 function autoDv(u,o,t,dv,vs,e){if(vs==='def'&&efx(t.o).some(x=>x.k==='def12'))dv=Math.max(dv,12);if(vs==='def'&&t.pc&&auTh(t.o,'플라코포라'))dv=Math.max(dv,13+Math.floor(auSl(t,'테리오모르포시스')/2));if(vs==='mdef'&&efx(t.o).some(x=>x.k==='mdef12'))dv=Math.max(dv,12);
   if(vs==='def'&&AF.act==='atk'&&o?.range==='원거리'&&efx(t.o).some(x=>x.k==='rdef'))dv+=2;
   if(vs==='def'&&u.pc&&o?.n==='맨손'&&hasHero(u.o,'상위 아크로모르포시스')&&['비전','투척','단검','격투'].includes(auCat(u,o)))dv=t.die('ins');
@@ -5046,6 +5047,7 @@ function autoOpt(u,o){if(!o||!u)return o;o={...o};const c=u.o,cat=auCat(u,o);
 }
   if(AF.act==='spell'&&o.off&&u.pc){const tg=AF.targets;if(hasHero(c,'비전 표식')&&tg.length===1&&efx(unitOf(tg[0])?.o).some(e=>e.k==='amark'&&e.v===u.k))o.equalCrit=true}
   if(u.pc&&hasHero(c,'드러난 신경')&&AF.targets.some(k=>unitOf(k)?.o.status?.enraged))o.equalCrit=true;
+  if(efx(c).some(e=>e.k==='pcrit')&&(AF.act==='atk'||AF.act==='spell'&&o.off))o.equalCrit=true;
   if(AF.act==='atk'||AF.act==='spell'&&o.off)o.acc=(+o.acc||0)+2*AF.targets.filter(k=>symOf(unitOf(k)?.o,'진실의 상징')).length;
   if(AF.ov2)o.a1=AF.ov2[0],o.a2=AF.ov2[1],o.acc=(+o.acc||0)+(+AF.ov2[2]||0);
   if(u.pc&&AF.thType&&o.dmg!=null&&(AF.act==='atk'||AF.act==='spell'))o.type=AF.thType;if(u.pc&&AF.act==='atk'&&o.n==='맨손'&&auTh(c,'폴리포다'))o.multi=3;
@@ -5053,7 +5055,7 @@ function autoOpt(u,o){if(!o||!u)return o;o={...o};const c=u.o,cat=auCat(u,o);
 function auCount(u,k,n,d,cap){const e=efx(u.o).find(x=>x.k===k),v=Math.min(cap,(e?.v||0)+d);u.o.efx=[...efx(u.o).filter(x=>x.k!==k),{n,k,v,end:'scene'}];saveC()}
 function autoDmg(u,o,t,tg){let n=+AF.x?.dmg||0;if(!u.pc)return n;const c=u.o,cat=auCat(u,o),sl=n2=>auSl(u,n2);{const g=auGarden(c);if(g?.n==='갈고리잎 까마중'&&g.v>=2&&!efx(c).some(e=>e.k==='usedNight')&&o?.dmg!=null)n+=sl('엽록술')}if(AF.x?.dmgCat&&['격투','창'].includes(cat))n+=5;
   if(efx(c).some(e=>e.k==='danced')&&sl('전쟁 무희')&&(AF.act==='atk'&&['격투','단검','도리깨','투척'].includes(cat)||AF.act==='spell'&&o.off&&auArcane(c)))n+=sl('전쟁 무희');
-  if(AF.act==='spell'&&o.dmg!=null)n+=5*(+AF.cata||0);
+  if(AF.act==='spell'&&o.dmg!=null)n+=5*(+AF.cata||0);{const th=efx(c).find(e=>e.k==='theme');if(th&&AU_KEY[th.v]?.[0]===o?.type)n+=5}
   if(AF.act==='atk'&&hasHero(c,'비전 표식')&&cat==='비전')n+=5;
   if(AF.act==='atk'){const cr=efx(c).find(e=>e.k==='courage'),mo=efx(c).find(e=>e.k==='momentum');if(cr&&cat==='격투'&&o.range!=='원거리')n+=cr.v;if(mo&&cat==='투척'&&o.range==='원거리')n+=mo.v}
   if(AF.x&&hasHero(c,'용감한 방패 강타')&&efx(t.o).some(e=>e.k==='taunt'&&e.v===u.k)&&!efx(c).some(e=>e.k==='usedShieldBash'))n+=5;
@@ -5176,6 +5178,7 @@ function autoRes(u,o,tg){const r=AF.res;if(!r||!u)return;r.ch=r.ch||[];r.notes=r
     if(sk==='도발'&&t0){const ok=contested('mig','wlp');r.okSk=ok;if(ok)r.notes.push(`${t0.name} 격노 · 나를 대상에 넣어야 함`)}
     if(sk==='영혼 훔치기'&&e)for(const t of tg){const ok=!e.fumble&&(e.crit||e.total>=t.mdef),used=efx(t.o).some(x=>x.k==='stolen'&&x.v===u.k);r.notes.push(`${t.name}: ${used?'이미 훔쳤어요':ok?(+t.o.rank?'영혼의 보물 — GM이 정해요':`IP +${sl('영혼 훔치기')}`):'실패'} (${e.total} vs 마방 ${t.mdef})`);(r.steal||=[]).push(ok&&!used?t.k:null)}
     if(sk==='격려'&&t0){r.notes.push(`${t0.name} HP +${sl('격려')*5}`);r.ch.push(auG('at','다음 턴까지 한 단계',['dex','ins','mig','wlp'].map(a=>({l:ATTR[a],v:a})),0))}
+    if(sk==='마기챈트')auChantCh(u,r);
     if(sk==='주교의 칙령')r.ch.push(auG('fld','주교의 칙령 (다음 내 턴까지)',[{l:'모든 MP 비용 두 배',v:'mp2x'},{l:`모든 피해 +${sl('주교의 칙령')*3}`,v:'dmg+'}],0));
     if(sk==='왕의 성채')r.ch.push(auG('fld','왕의 성채 (다음 내 턴까지)',[{l:'아무도 회복 못 함',v:'noheal'},{l:`MP 회복 +${sl('왕의 성채')*5}`,v:'mp+'}],0));
     if(['주교의 칙령','왕의 성채'].includes(sk)&&hasHero(c,'타불라 라사')&&auCrisis(u)){const v=(+c.level||0)>=40?30:(+c.level||0)>=20?20:10;r.ch.push(auG('tabula','타불라 라사',[{l:`모든 적 HP −${v}`,v}],0))}
@@ -5296,7 +5299,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
   if(AF.act==='guard'&&u.pc){const t0=tg[0];if(t0&&sl('호위'))efxAdd(t0,{n:'호위',k:'resist',v:'all',on:t0.k,end:'turn'});
     if(!t0&&sl('버티기')){auHeal(u,'hp',sl('버티기')*Math.max(0,...(c.bonds||[]).map(bondStr)),'버티기');const a=pick('hold');if(a)efxAdd(u,{n:'버티기',k:'die',v:a,on:u.k,end:'turnEnd'})}}
   // skills
-  if(AF.act==='skill'){const sk=r.sk||'',t0=tg[0];autoDancePost(u,r);
+  if(AF.act==='skill'){const sk=r.sk||'',t0=tg[0];autoDancePost(u,r);if(sk==='마기챈트')auChantPost(u,r);
     if(sk==='규탄'&&r.okSk&&t0){const got=auLose(t0,'mp',sl('규탄')*10,'규탄');const s=pick('st');if(s)auStatus(t0,s,'규탄');if(s==='enraged'&&got)auHeal(u,'mp',Math.floor(got/2),'드러난 신경')}
     if(sk==='도발'&&r.okSk&&t0){auStatus(t0,'enraged','도발');efxAdd(t0,{n:'도발',k:'taunt',v:u.k,end:'scene'})}
     if(sk==='영혼 훔치기')(r.steal||[]).forEach((k,i)=>{const t=k&&unitOf(k);if(!t)return;t.o.efx=[...efx(t.o),{n:'영혼 훔치기',k:'stolen',v:u.k,end:'scene'}];auSv(t);if(!+t.o.rank)auHeal(u,'ip',sl('영혼 훔치기'),'영혼 훔치기');else logText(u.name,`영혼 훔치기 — ${t.name}의 영혼의 보물 (GM이 레벨×${t.o.villain?50:30} 제니트 이하로)`)});
@@ -5312,7 +5315,7 @@ function autoPost(r){if(r.autoDone)return false;r.autoDone=true;auMomSpend();con
     if(sk==='덧없는 평온'&&tg.length){c.mp=Math.max(0,(+c.mp||0)-10*tg.length);saveC();let gain=0;for(const t of tg){const k0=AU_STAT.filter(s=>t.o.status?.[s]).length,cr0=auCrisis(t);t.o.status={};auSv(t);auLose(t,'hp',Math.floor((+c.level||0)/2)+10*k0,'덧없는 평온');if(t.o.hp<=0||!cr0&&auCrisis(t))gain+=20}if(gain)auHeal(u,'mp',gain,'덧없는 평온')}
     if(pick('repeat')){c.efx=[...efx(c),{n:'반복',k:'usedRepeat',on:u.k,end:'turnEnd',at:P.combat.round}];saveC();AF.res=null;AF.step='tgt';AF.targets=[];renderAct();return true}}
   // checks
-  if(AF.act==='obj'&&e?.ok&&u.pc&&(auTh(c,'디나모테리아')&&AF.attr.includes('mig')||auTh(c,'타키테리아')&&AF.attr.includes('dex'))){const cl=P.clocks[+AF.clock];if(cl){cl.filled=clamp(cl.filled+1,0,cl.size);saveP();logText(u.name,`${auTh(c,'디나모테리아')&&AF.attr.includes('mig')?'디나모테리아':'타키테리아'} — 시계 +1칸`)}}
+  if(AF.act==='obj'&&e?.ok&&u.pc&&(auTh(c,'디나모테리아')&&AF.attr.includes('mig')||auTh(c,'타키테리아')&&AF.attr.includes('dex')||efx(c).some(e2=>e2.k==='vivace'&&AF.attr.includes(e2.v)))){const cl=P.clocks[+AF.clock];if(cl){cl.filled=clamp(cl.filled+1,0,cl.size);saveP();logText(u.name,`${efx(c).some(e2=>e2.k==='vivace'&&AF.attr.includes(e2.v))?'활기찬 소절':auTh(c,'디나모테리아')&&AF.attr.includes('mig')?'디나모테리아':'타키테리아'} — 시계 +1칸`)}}
   const pv=pick('pers');if(pv&&AF.act==='obj'){const cl=P.clocks[+AF.clock];if(cl&&(+c.mp||0)>=pv*20){c.mp-=pv*20;cl.filled=clamp(cl.filled+pv,0,cl.size);saveC();saveP();logText(u.name,`설득력 — MP −${pv*20}, 시계 +${pv}칸`)}}
   if(AF.act==='study'&&AF.scanAll&&e&&e.total>=10){for(const x of P.combat.enemies.filter(x=>x.hp>0))x.reveal=true;saveP();logText(u.name,`신속 스캔 — 모든 적 분석 (${e.total})`)}
   const fo=pick('fort');if(fo){AF.fortGiven=1;if(fo==='hp'||fo==='mp')auHeal(u,fo,sl('불굴의 정신')*5,'불굴의 정신');else{c.status[fo]=false;saveC();logText(u.name,`불굴의 정신 — ${STATUS[fo][0]} 회복`)}}
@@ -5424,6 +5427,37 @@ function autoClockAdj(k,kind,d){const u=unitOf(k);if(!u||!(GM||mineK(k)))return;
   if(kind==='brain'){const v=clamp(auBrain(c)+d,0,4);c.efx=[...efx(c).filter(e=>e.k!=='brain'),{n:'두뇌 시계',k:'brain',v,end:'scene'}];saveC();logText(u.name,`두뇌 시계 ${v}/4 (직접 조정)`)}
   if(kind==='garden'){const g=auGarden(c);if(!g)return;g.v=clamp(g.v+d,0,4);saveC();logText(u.name,`성장 시계 ${g.v}/4 (직접 조정)`);if(g.v>=4)auSeedLeave(u,g,'성장 시계가 참')}
   if(tab==='combat')renderCombat()}
+// ---------- 마기챈트 (챈터): volume × key × tone picked on the result; MP by volume; one verse per turn ----------
+const AU_VOL={낮음:[10,'하나'],중간:[20,'모든 아군'],높음:[30,'모든 적']};
+const AU_KEY={불꽃:['화염','shaken','mig','hp'],서리:['냉기','weak','wlp','mp'],강철:['물리','slow','wlp','mp'],광휘:['번개','shaken','dex','hp'],그림자:['빛','dazed','ins','hp'],바위:['어둠','weak','dex','mp'],천둥:['대지','dazed','mig','hp'],바람:['바람','slow','ins','mp']};
+const AU_TONE=['차분한','활기찬','광란의','섬뜩한','경쾌한','위협적인','엄숙한'];
+function auChantCh(u,r){const c=u.o,G=(id,l,o,s=null)=>r.ch.push(auG(id,l,o,s)),th=efx(c).find(e=>e.k==='theme');
+  G('vol','음량',Object.entries(AU_VOL).map(([k,[mp,t]])=>({l:`${k} · MP ${mp} · ${t}`,v:k})),0);
+  G('key','조성',Object.entries(AU_KEY).map(([k,[ty,st,at,rc]])=>({l:`${k} (${ty}·${STATUS[st][0]}·${AB[at]}·${rc==='hp'?'HP':'MP'})${th?.v===k?' ♪':''}`,v:k})),0);
+  G('tone','음조',AU_TONE.map(x=>({l:x,v:x})),0);
+  G('vtg','낮음 · 대상',auUnits().filter(t=>t.o.hp>0).map(t=>({l:t.name,v:t.k})),0);
+  if(hasHero(c,'파워 코드'))G('pcode','파워 코드 (중간·높음)',[{l:'MP 두 배',v:'mp'},{l:'FP 1',v:'fp'}]);
+  if(hasHero(c,'주제가')&&!efx(c).some(e=>e.k==='usedTheme'))G('theme','주제가 시작 (장면에 한 번)',[{l:'이 조성으로',v:1}]);
+  if(auSl(u,'공명')&&auArcane(c))G('reso','공명 (높음 · 비전 무기)',[{l:`아군이 그 적들에게 +${auSl(u,'공명')} 피해`,v:'dmg'},{l:`그 적들이 피해받을 때마다 MP +${auSl(u,'공명')}`,v:'mp'}])}
+function auChantPost(u,r){const c=u.o,pick=id=>auPick(r,id),vol=pick('vol'),key=pick('key'),tone=pick('tone');if(!vol||!key||!tone)return;const[ty,st,at,rc]=AU_KEY[key],sl=x=>auSl(u,x),wd=u.die('wlp'),lv=(+c.level||0)>=40?20:(+c.level||0)>=20?10:0;
+  if(efx(c).some(e=>e.k==='usedVerse')){toast('소절은 턴에 하나만 부를 수 있어요',1);return}
+  const th=efx(c).find(e=>e.k==='theme');let mp=AU_VOL[vol][0]*(P.combat.fld?.some(f=>f.k==='mp2x')?2:1);if(th?.v===key)mp=Math.floor(mp/2);const pc=vol!=='낮음'&&pick('pcode');if(pc==='mp')mp*=2;if(pc==='fp')c.fp=Math.max(0,(+c.fp||0)-1);
+  if((+c.mp||0)<mp){toast(`MP가 부족해요 (필요 ${mp})`,1);return}c.mp-=mp;c.efx=[...efx(c),{n:'소절',k:'usedVerse',on:u.k,end:'turnEnd',at:P.combat.round}];saveC();
+  const T=vol==='낮음'?[unitOf(pick('vtg'))].filter(Boolean):vol==='중간'?pcs().map(p=>unitOf('c:'+p.id)).filter(t=>t&&t.o.hp>0):auUnits().filter(t=>!t.pc&&t.o.hp>0);
+  logText(u.name,`소절 — ${vol}·${key}·${tone} (MP −${mp}) → ${T.map(t=>t.name).join(', ')}`);abilFx(u.k,`${key}의 ${tone} 소절`,'마기챈트','',T.map(t=>t.name));
+  for(const t of T){const add=x=>efxAdd(t,{n:`${tone} 소절`,on:u.k,end:'turn',...x});// lasts until the singer's next turn
+    if(tone==='차분한'&&!(rc==='mp'&&t.k===u.k))auHeal(t,rc,10+2*wd+lv,`${tone} 소절`);
+    if(tone==='활기찬')add({k:'vivace',v:at});
+    if(tone==='광란의')applyDmg(t.k,2*wd+lv,ty,{});
+    if(tone==='섬뜩한'){auStatus(t,st,`${tone} 소절`);add({k:'loseRes',v:ty})}
+    if(tone==='경쾌한')add({k:'die',v:at});
+    if(tone==='위협적인')add({k:'ttype',v:ty});
+    if(tone==='엄숙한'){if(t.o.status?.[st]){t.o.status[st]=false;auSv(t)}add({k:'resist',v:ty})}}
+  if(vol!=='낮음'&&sl('소리의 방벽'))efxAdd(u,{n:'소리의 방벽',k:'dr',v:sl('소리의 방벽'),on:u.k,end:'turn'});
+  if(pc)for(const p of pcs())efxAdd(unitOf('c:'+p.id),{n:'파워 코드',k:'pcrit',on:u.k,end:'turn'});
+  const rs=vol==='높음'&&pick('reso');if(rs)for(const t of T)efxAdd(t,rs==='dmg'?{n:'공명',k:'taken',v:sl('공명'),on:u.k,end:'turn'}:{n:'공명',k:'reso',v:u.k,on:u.k,end:'turn'});
+  if(pick('theme')){c.efx=[...efx(c).filter(e=>e.k!=='theme'),{n:'주제가',k:'theme',v:key,end:'scene'},{n:'주제가',k:'usedTheme',end:'scene'}];saveC();logText(u.name,`주제가 — ${key}의 조성`)}}
+function autoTType(t,type){const e=efx(t.o).find(x=>x.k==='ttype');return e?e.v:type}
 /* ================= end combat automation ================= */
 // core inventory: potion 50 HP, elixir 50 MP, tonic clears one status, elemental shard 10 damage of a chosen type, tent = rest (GM runs it)
 function itemEffect(it,t,status,type,actor){let msg=`${it.n} 사용 (IP −${it.ip})`;if(!t)return msg;const tu=t.o,max=t.pc?derive(tu).maxHp:tu.maxHp,mmax=t.pc?derive(tu).maxMp:tu.maxMp;
@@ -5768,7 +5802,7 @@ document.addEventListener('click',async ev=>{const dt=ev.target.closest('[data-d
   case'dmg':case'heal':{const k=t.dataset.k,n=Math.abs(+byId('n-'+k).value||0);if(!n){toast('수치를 입력하세요',1);break}
     if(a==='dmg')applyDmg(k,n,byId('t-'+k).value);else{const{c,pc}=target(k);const max=pc?derive(c).maxHp:c.maxHp,was=c.hp;c.hp=clamp(c.hp+n,0,Math.max(max,+c.hp||0));logText(c.name,`HP ${c.hp-was} 회복${pc||c.reveal?` → ${c.hp}/${max}`:''}`);pc?saveC():saveP();renderCombat()}break}
   case'mp':{const k=t.dataset.k,n=Math.abs(+byId('n-'+k).value||0);if(!n){toast('수치를 입력하세요',1);break}const{c,pc}=target(k);const max=pc?derive(c).maxMp:c.maxMp;c.mp=clamp(c.mp+n*+t.dataset.s,0,Math.max(max,+c.mp||0));logText(c.name,`MP ${t.dataset.s>0?'+':'−'}${n}${pc||c.reveal?` → ${c.mp}/${max}`:''}`);pc?saveC():saveP();renderCombat();break}
-  case'fly':autoFlyToggle(t.dataset.k);break;case'fly':autoFlyToggle(t.dataset.k);break;case'auclk':autoClockAdj(t.dataset.k,t.dataset.c,+t.dataset.v);break;case'acted':C.acted[t.dataset.k]=!C.acted[t.dataset.k];if(C.acted[t.dataset.k])unlock(t.dataset.k);saveP();renderCombat();autoRound();break;
+  case'fly':autoFlyToggle(t.dataset.k);break;case'auclk':autoClockAdj(t.dataset.k,t.dataset.c,+t.dataset.v);break;case'acted':C.acted[t.dataset.k]=!C.acted[t.dataset.k];if(C.acted[t.dataset.k])unlock(t.dataset.k);saveP();renderCombat();autoRound();break;
   case'lock':{const[tp,id]=t.dataset.p.split(':');const o=tp==='c'?CH[id]:C.enemies.find(e=>e.id===id);const L=o.lock=o.lock||[],a=t.dataset.k,i=L.indexOf(a);i>=0?L.splice(i,1):L.push(a);tp==='c'?saveC():saveP();renderCombat();break}
   case'endround':C.round++;C.acted={};saveP();logText('GM',`라운드 ${C.round} 시작`);renderCombat();break;
   case'first':C.first=C.first==='pc'?'npc':'pc';saveP();renderCombat();break;
