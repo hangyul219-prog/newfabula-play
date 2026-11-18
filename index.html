@@ -3429,7 +3429,7 @@ RULES.archetypes.forEach(a=>a.src=a.src||'CORE');RULES.archetypes.push(...EXT.ar
 const CHOICE_LAB={"도구": "도구", "결속과 소환": "아르카나", "춤": "춤", "상징술": "상징", "엽록술": "마법 씨앗", "테리오모르포시스": "테리오폼", "사이킥 재능": "재능"};
 const CHOICE_SK=Object.fromEntries(CLASSES.flatMap(c=>Object.entries(c.choices||{}).map(([sk,v])=>[sk,{cls:c.name,lab:CHOICE_LAB[sk]||sk,per:v.per}])));
 function choiceList(sk){const D=CHOICE_SK[sk];return D&&typeof CLASS!=='undefined'?(CLASS[D.cls]?.choices?.[sk]?.list||[]):[]}
-const choiceMax=(c,sk)=>{const s=(c.classes||[]).flatMap(k=>k.skills||[]).find(x=>x.n===sk);return(+s?.sl||0)*(CHOICE_SK[sk]?.per||1)};
+const choiceMax=(c,sk)=>{const s=(c.classes||[]).flatMap(k=>k.skills||[]).find(x=>x.n===sk);return((+s?.sl||0)+hsMnemoSl(c,sk))*(CHOICE_SK[sk]?.per||1)};
 function finite(v,d=0,min=-99999,max=99999){const n=Number(v);return Number.isFinite(n)?clamp(n,min,max):d}
 function objectOr(v,d={}){return v&&typeof v==='object'&&!Array.isArray(v)?v:d}
 function normalizeChar(c){
@@ -3510,7 +3510,7 @@ let _mig=0;function migrateAll(CH){let ch=false;for(const c of Object.values(CH|
 /* Shared heroic rules. Narrative prerequisites remain visible for table adjudication. */
 const HERO_ALIAS={};
 const heroName=n=>HERO_ALIAS[n]||n;
-const hasHero=(c,n)=>(c?.heroics||[]).some(h=>heroName(h.n)===n);
+const hasHero=(c,n)=>(c?.heroics||[]).some(h=>heroName(h.n)===n)||hsMnemoHeroes(c).includes(n);
 const heroDef=n=>RULES.heroics.find(h=>h.n===heroName(n));
 const heroScale=c=>(+c.level||0)>=40?10:5;
 const heroStatusCount=c=>Object.keys(STATUS).filter(s=>c.status?.[s]).length;
@@ -3679,7 +3679,7 @@ const gearTexts=c=>gearItems(c).map(w=>gearText(c,w));
 const gearHas=(c,re)=>gearTexts(c).some(s=>re.test(s));
 const canOneHand=(c,w)=>w?.hand!=='양손'||!gearRecord(w)?.custom&&hasHero(c,'괴력의 손아귀')&&['도리깨','중량','창','검'].includes(w.cat);
 const gearStatusNames={혼란:'dazed',동요:'shaken',둔화:'slow',약화:'weak',격노:'enraged',중독:'poisoned'};
-function resourceMax(c,type){const cl=c.classes||[],sl=n=>cl.flatMap(k=>k.skills||[]).filter(s=>s.n===n).reduce((a,s)=>a+(+s.sl||0),0),cnt=t=>cl.filter(k=>{const b=k.pick||CLASS[k.name]?.bonus;return(b==='hp|mp'?'hp':b)===t}).length;
+function resourceMax(c,type){const cl=c.classes||[],sl=n=>cl.flatMap(k=>k.skills||[]).filter(s=>s.n===n).reduce((a,s)=>a+(+s.sl||0),0)+hsMnemoSl(c,n),cnt=t=>cl.filter(k=>{const b=k.pick||CLASS[k.name]?.bonus;return(b==='hp|mp'?'hp':b)===t}).length;
  const ring=gearHas(c,/서로 다른 클래스 하나당 최대 체력과 최대 정신력이 2/)?new Set(cl.map(k=>k.name)).size*2:0;
  if(type==='hp')return Math.max(1,(+c.level||0)+5*(+c.attr.mig||0)+5*cnt('hp')+3*sl('요새')+(+c.bonus?.hp||0)+(hasHero(c,'추가 HP')?(c.level>=40?20:10):0)+ring+(gearHasName(c,'오리할콘')?10:0));
  return Math.max(0,(+c.level||0)+5*(+c.attr.wlp||0)+5*cnt('mp')+3*sl('집중')+(+c.bonus?.mp||0)+(hasHero(c,'추가 MP')?(c.level>=40?20:10):0)+ring);
@@ -3722,7 +3722,7 @@ const HS_CAP={'α':1,'β':2,'γ':3,'δ':4},HS_SLOTS=[['main','주무기'],['off'
 const hsKey=n=>String(n||'').replace(/ 호플로스피어$/,''),hsDef=n=>HS[hsKey(n)],hsSize=n=>hsDef(n)?.sz||1;
 const hsUsed=s=>(s||[]).reduce((a,n)=>a+hsSize(n),0);
 // the item a slot holds right now (riding a vehicle swaps hands/armor for modules → its spheres are idle)
-function hsHost(c,k){const it=(c.equip||{})[k],e=effectiveEquip(c)[k];return it?.name&&e?.name===it.name?it:null}
+function hsHost(c,k){const it=(c.equip||{})[k],v=c.vehicle;if(!it?.name)return null;if(v?.driving&&(k==='armor'?v.armor:(v.hands||[]).length))return null;return it}// no effectiveEquip here: derive → spheres must not loop back through vehicle checks
 function hsIsWeapon(k,it){return k!=='armor'&&!!it?.cat&&it.cat!=='-'}
 function hsSlotFx(c,k){const h=c.hs?.[k],it=hsHost(c,k);if(!h?.s?.length||!it)return null;const w=hsIsWeapon(k,it),F={sp:[],hit:[],res:[],imm:[],ign:[],conv:[],st:[],die:[]};
   const cnt={};for(const n of h.s)if(hsDef(n))cnt[hsKey(n)]=(cnt[hsKey(n)]||0)+1;
@@ -3741,6 +3741,17 @@ function hsLines(F){if(!F)return[];const L=[];const j=a=>[...new Set(a)].join('�
   if(F.die.length)L.push(`${F.die.map(a=>HS_AB[a]).join('·')} 한 단계 ↑`);if(F.st.length)L.push(`${F.st.map(s=>HS_ST[s]).join('·')} 면역`);if(F.hit.length)L.push(`명중하면 ${j(F.hit.map(s=>HS_ST[s]))}`);
   if(F.drain)L.push(`명중하면 HP·MP +${F.drain}`);if(F.def)L.push(`방어 +${F.def}`);if(F.mdef)L.push(`마방 +${F.mdef}`);if(F.init)L.push(`선제 +${F.init}`);if(F.hp)L.push(`HP 회복 +${F.hp}`);if(F.mp)L.push(`MP 회복 +${F.mp}`);
   if(F.pot)L.push(`포션 회복 +${F.pot}`);if(F.spell)L.push(`주문 피해·회복 +${F.spell}`);if(F.open)L.push(`살펴보기 판정 +${F.open} (GM 적용)`);return L}
+/* 므네모스피어: class-skill spheres. c.mnemo=[{id,cls,sk:{skill:SL},hero,spells:[spell objects]}], placed by id in c.hs[k].m (one slot each).
+   A sphere that grants a skill the hero already has from their own classes is switched off (룰북: 그 물건을 장비할 수 없다). No free benefits, no rituals/projects. */
+const HS_MCAP={'α':1,'β':1,'γ':2,'δ':2},HS_MREC=['로그','챈터','키메리스트','커맨더','댄서','엘리멘탈리스트','엔트로피스트','에스퍼','퓨리','가디언','웨폰마스터','오레이터','로어마스터','스피리티스트','샤프슈터'];
+const hsMLv=m=>Object.values(m?.sk||{}).reduce((a,v)=>a+(+v||0),0),hsMSk=m=>Object.keys(m?.sk||{}).filter(n=>+m.sk[n]>0);
+function hsMnemos(c){const out=[],inn=new Set((c.classes||[]).flatMap(k=>(k.skills||[]).filter(s=>+s.sl>0).map(s=>s.n)));
+  for(const m of c.mnemo||[])m._off=false;
+  for(const[k]of HS_SLOTS){const h=c.hs?.[k];if(!h?.m?.length||!hsHost(c,k))continue;for(const id of h.m){const m=(c.mnemo||[]).find(x=>x.id===id);if(!m)continue;m._off=hsMSk(m).some(n=>inn.has(n));if(!m._off)out.push(m)}}return out}
+const hsMnemoSl=(c,n)=>c?.mnemo?.length?hsMnemos(c).reduce((a,m)=>a+(+m.sk?.[n]||0),0):0;
+const hsMnemoHeroes=c=>c?.mnemo?.length?hsMnemos(c).filter(m=>hsMLv(m)>=5&&m.hero).map(m=>m.hero):[];
+const hsMnemoSpells=c=>c?.mnemo?.length?hsMnemos(c).flatMap(m=>m.spells||[]):[];
+function hsMnemoSkills(c){return c?.mnemo?.length?hsMnemos(c).flatMap(m=>hsMSk(m).map(n=>({cls:'므네모스피어 · '+m.cls,n,sl:+m.sk[n],max:CLASSES.find(k=>k.name===m.cls)?.skills?.find(s=>s.n===n)?.max||1,d:CLASSES.find(k=>k.name===m.cls)?.skills?.find(s=>s.n===n)?.d||'',mnemo:true}))):[]}
 /* ===HS-CORE-END=== */
 function gearDefense(c,kind){let n=hsFx(c)[kind]||0;for(const w of gearItems(c)){
   const s=w.sp;if(s.includes('이미 반영됨'))continue;
@@ -3853,7 +3864,7 @@ function gearOnHit(actor,w,rows,kind,sourceText){const hit=rows.filter(r=>r.hit)
 
 function derive(c){
   const cl=c.classes||[];const cnt=t=>cl.filter(k=>{const b=k.pick||CLASS[k.name]?.bonus;return(b==='hp|mp'?'hp':b)===t}).length;// 'hp|mp' classes store the player's pick; unpicked counts as HP like the selector shows
-  const sl=n=>gearSkill(c,n,cl.reduce((s,k)=>s+(k.skills||[]).filter(x=>x.n===n).reduce((a,x)=>a+(+x.sl||0),0),0));
+  const sl=n=>gearSkill(c,n,cl.reduce((s,k)=>s+(k.skills||[]).filter(x=>x.n===n).reduce((a,x)=>a+(+x.sl||0),0),0)+hsMnemoSl(c,n));
   const b=c.bonus||{},eq=effectiveEquip(c),ar=eq.armor||{},sh=eq.shield||{};
   const cur=Object.fromEntries(Object.keys(ATTR).map(k=>[k,curDie(c,k)]));
   const maxHp=resourceMax(c,'hp');
@@ -4853,7 +4864,7 @@ let TIP=null;document.addEventListener('mouseover',e=>{const t=e.target.closest?
 function actOptions(u,act){if(act==='atk'){if(u.pc){const e=effectiveEquip(u.o);return[e.main,e.off].filter(w=>w&&w.name).map(w=>({...gearWeapon(w),n:w.name,a1:w.a1,a2:w.a2,acc:(+w.acc||0)+(w.range==='원거리'?u.d.sl('원거리 무기 숙련'):u.d.sl('근접 무기 숙련')),dmg:+w.dmg||0,type:w.type||'물리',range:w.range||'근접',vs:gearWeapon(w).vs,multi:gearWeapon(w).multi})).concat([{n:'맨손',a1:'dex',a2:'mig',acc:0,dmg:0,type:'물리',range:'근접',vs:'def',multi:1}]).filter(w=>!(AF.x?.melee&&w.range!=='근접')&&!(AF.x?.ranged&&w.range!=='원거리'))}// a free attack that names a weapon kind lists only those
     const cu=(u.o.atk||[]).find(a=>a.custom)||{n:'직접 입력',a1:'dex',a2:'mig',acc:0,dmg:5,type:'물리',range:'근접'};
     return(u.o.atk||[]).filter(a=>!a.custom).map(a=>{const m=String(u.o.note||'').match(new RegExp(a.n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'[^\n]{0,160}?다중\\((\\d)\\)'));return{...a,vs:'def',multi:+a.multi||(m?+m[1]:1)}}).concat([{...cu,vs:'def',multi:1,custom:true}])}
-  if(act==='spell'){const list=u.pc?(u.o.spells||[]):(u.o.spells||[]);return list.map(s=>{const ds=String(s.d||''),m1=ds.match(/HR \+ (\d+)\s*(\S+?) 피해/),m2=ds.match(/(\S+?) 피해 HR \+ (\d+)/),dm=m1?m1:(m2?[m2[0],m2[2],m2[1]]:null),heal=String(s.d||'').match(/체력 (\d+)을? 회복/);
+  if(act==='spell'){const list=u.pc?[...(u.o.spells||[]),...hsMnemoSpells(u.o)]:(u.o.spells||[]);return list.map(s=>{const ds=String(s.d||''),m1=ds.match(/HR \+ (\d+)\s*(\S+?) 피해/),m2=ds.match(/(\S+?) 피해 HR \+ (\d+)/),dm=m1?m1:(m2?[m2[0],m2[2],m2[1]]:null),heal=String(s.d||'').match(/체력 (\d+)을? 회복/);
       return gearSpellOptions(u.pc?u.o:{},{n:s.n,a1:s.a1||'ins',a2:s.a2||'wlp',acc:+s.acc||0,dmg:s.dmg!=null?s.dmg:(dm?+dm[1]:null),type:s.type||(dm?(DTYPES.includes(dm[2])?dm[2]:'물리'):null),mp:+s.mp||0,perT:s.perT||/T/.test(s.mpTxt||''),off:!!s.off,heal:s.n==='치유'?(+u.o.level>=40?60:+u.o.level>=20?50:40):(heal?+heal[1]:0),cleanse:s.n==='정화',self:s.tg==='자신',ignoreRes:/저항을 무시/.test(ds),ignoreImm:/면역을 무시/.test(ds),multi:/최대 3|3명/.test(s.tg||'')?3:1,vs:'mdef',d:s.d||''})}).concat(u.pc?giftOpts(u.o):[])}
   return[]}
 // multi(n): weapon/attack base + optional 칼날 폭풍 (melee) / 탄막 (ranged) for 10 MP, capped at 다중(3)
@@ -4909,7 +4920,7 @@ function toggleTarget(k){const u=unitOf(AF.k),o=actOptions(u,AF.act)[AF.opt],mx=
 // valid targets glow on the field, chosen ones get a ▼ marker; syncSprites calls this again after it rewrites classes
 function markTargets(keys){AF._tk=keys;const on=new Set(AF.targets||[]);for(const el of $$('#units .spr')){const k=el.dataset.k;el.classList.toggle('tg-ok',keys.includes(k));el.classList.toggle('tg-on',keys.includes(k)&&on.has(k))}}
 const optSpec=x=>`${AB[x.a1]}+${AB[x.a2]}${x.acc?' +'+x.acc:''} · ${x.dmg!=null?`HR+${x.dmg} ${x.type}`:x.heal?`HP ${x.heal} 회복`:'피해 없음'}${x.mp?` · MP ${x.mp}${x.perT?'×대상':''}`:''}${x.multi>1?` · 최대 ${x.multi}명`:''}`;
-function actorSkills(c){return[...(c.classes||[]).flatMap(k=>(k.skills||[]).filter(s=>s.sl).map(s=>({cls:k.name,...s}))),...gearItems(c).filter(w=>w.sp&&!/^특수효과 없음/.test(w.sp)).map(w=>({n:w.name,sl:1,cls:'장비 효과',d:w.sp,gear:w})),...(c.heroics||[]).map(h=>({n:heroName(h.n),sl:1,cls:'영웅 기술 · '+heroMode(h.n),d:heroDef(h.n)?.d||'',heroic:true}))]}
+function actorSkills(c){return[...(c.classes||[]).flatMap(k=>(k.skills||[]).filter(s=>s.sl).map(s=>({cls:k.name,...s}))),...hsMnemoSkills(c),...gearItems(c).filter(w=>w.sp&&!/^특수효과 없음/.test(w.sp)).map(w=>({n:w.name,sl:1,cls:'장비 효과',d:w.sp,gear:w})),...(c.heroics||[]).map(h=>({n:heroName(h.n),sl:1,cls:'영웅 기술 · '+heroMode(h.n),d:heroDef(h.n)?.d||'',heroic:true}))]}
 function renderAct(){const u=unitOf(AF.k);if(!u)return;if(AF.res&&AF._rs!==AF.res){AF._rs=AF.res;AF.resT=Date.now()}const acts=ACTS[u.pc?'pc':'foe'].filter(a=>!AF.x||AF.x.acts.includes(a[0])),all=!AF.xm&&u.o.lock?.includes('all');
   const opts=actOptions(u,AF.act),o=opts[AF.opt]||opts[0],res=AF.res,step=all?'cmd':res?'res':AF.step||'cmd';
   const pool=actPool(u,o),mx=tMax(u,o),sks=actorSkills(u.o);
