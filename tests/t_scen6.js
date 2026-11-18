@@ -13,3 +13,4 @@ T.run('해제 — 시간 정지: 둔화, 이미 둔화면 다음 턴 행동 금�
 T.run('비전의 원: 소환한 턴이 아니면 해제 뒤 무료 주문 / 소환한 턴이면 없음',()=>{ARC();summon('하늘');T.next();dismiss('뇌우',['슬라임']);T.ok('주문 단계',AF.act==='spell'&&AF.step==='opt',AF.act+' '+AF.step);
   ARC();T.open('미라');AF.done=false;T.act('skill','결속과 소환');T.roll();T.pick('arc','하늘');T.apply();xactOpen('c:c2','more');T.act('skill','결속과 소환');T.roll();T.pick('dis','뇌우');T.pick('disT','슬라임');T.apply();T.ok('같은 턴 소환 → 비전의 원 없음',AF.act!=='spell'||AF.finished,AF.act)});
 T.run('쓰러지면 아르카나 해제',()=>{ARC();summon('서리');applyDmg('c:c2',999,'물리',{untyped:true});T.ok('해제',!auArc(CH.c2))});
+T.run('검의 아르카나: 다중(원하는 수) 뒤 자동 해제 (비전의 원 없음)',()=>{ARC((C)=>{C.c2.equip.main=T.W('검')});summon('검');T.next();T.open('미라');T.act('atk',CH.c2.equip.main.name);T.ok('다중 99',tMax(T.u('미라'),actOptions(T.u('미라'),'atk')[AF.opt])===99);T.tg('고블린 대장','슬라임','불 정령');T.dice(...H(7,6));T.roll();T.apply();T.ok('자동 해제',!auArc(CH.c2));T.ok('비전의 원 없음',AF.act!=='spell'||AF.finished,AF.act)});
