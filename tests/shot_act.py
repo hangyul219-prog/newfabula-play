@@ -7,7 +7,7 @@ U=(D.parent/'index.html').as_uri()
 with sync_playwright() as p:
     b=p.chromium.launch(channel='msedge',headless=True);pg=b.new_page(viewport={'width':1600,'height':900});errs=[]
     pg.on('pageerror',lambda e:errs.append(str(e)))
-    pg.goto(U);pg.evaluate("s=>{localStorage.clear();for(const k in s)localStorage.setItem(k,s[k])}",{'fu.user':json.dumps('GM'),'fu.role':json.dumps('gm'),'fu.room':'','fu.fbcfg':'offline','fu.theme':json.dumps('metaphor')})
+    pg.goto(U);pg.evaluate("s=>{localStorage.clear();for(const k in s)localStorage.setItem(k,s[k])}",{'fu.user':json.dumps('GM'),'fu.role':json.dumps('gm'),'fu.room':'','fu.fbcfg':'offline','fu.theme':json.dumps('metaphor'),'fu.whl':'true'})
     pg.reload();pg.wait_for_timeout(2500)
     for _ in range(8):
         if not pg.evaluate("()=>{const t=document.getElementById('title');return !!t&&t.isConnected&&getComputedStyle(t).display!=='none'}"):break

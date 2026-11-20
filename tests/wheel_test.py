@@ -6,7 +6,7 @@ def ok(n,c,d=''):R.append((n,bool(c),d))
 with sync_playwright() as p:
     b=p.chromium.launch(channel='msedge',headless=True);pg=b.new_page(viewport={'width':1280,'height':720});errs=[]
     pg.on('pageerror',lambda e:errs.append(str(e)))
-    pg.goto(U);pg.evaluate("s=>{localStorage.clear();for(const k in s)localStorage.setItem(k,s[k])}",{'fu.user':json.dumps('GM'),'fu.role':json.dumps('gm'),'fu.room':'','fu.fbcfg':'offline','fu.theme':json.dumps('metaphor')})
+    pg.goto(U);pg.evaluate("s=>{localStorage.clear();for(const k in s)localStorage.setItem(k,s[k])}",{'fu.user':json.dumps('GM'),'fu.role':json.dumps('gm'),'fu.room':'','fu.fbcfg':'offline','fu.theme':json.dumps('metaphor'),'fu.whl':'true'})
     pg.reload();pg.wait_for_timeout(2500)
     for _ in range(8):
         if not pg.evaluate("()=>{const t=document.getElementById('title');return !!t&&t.isConnected&&getComputedStyle(t).display!=='none'}"):break
@@ -31,6 +31,9 @@ with sync_playwright() as p:
     ok('spell list is a wheel',pg.locator('.axl.whl').count()==1)
     pg.keyboard.press('ArrowDown');pg.wait_for_timeout(300);ok('info shows focused spell',pg.evaluate("()=>byId('axInfo').textContent===WHL.it[WHL.f].dataset.d"))
     pg.keyboard.press('Enter');pg.wait_for_timeout(400);ok('Enter picks spell 1',pg.evaluate("()=>AF.step+'/'+AF.opt")=='tgt/1',pg.evaluate("()=>AF.step+'/'+AF.opt"))
+    pg.evaluate("()=>{AF.step='cmd';AF.res=null;renderAct()}");pg.wait_for_timeout(300)
+    pg.locator('.whl-tg input').uncheck();pg.wait_for_timeout(300);ok('toggle off → plain list',pg.locator('.whl').count()==0 and pg.locator('.actx .cmds .cmd').first.get_attribute('style') is None)
+    pg.locator('.whl-tg input').check();pg.wait_for_timeout(300);ok('toggle on → wheel',pg.locator('.cmds.whl').count()==1 and pg.evaluate("()=>LS.get('fu.whl',false)")==True)
     pg.evaluate("()=>{applyTheme('ff');AF.step='cmd';renderAct()}");pg.wait_for_timeout(300);ok('ff theme untouched',pg.locator('.whl').count()==0)
     b.close()
 for n,c,d in R:print('PASS' if c else 'FAIL',n,d)
