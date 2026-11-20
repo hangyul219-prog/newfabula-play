@@ -18,7 +18,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{document.querySelector('#tabs [data-tab=\"combat\"]')?.click();T.reset();T.open('미라')}");pg.wait_for_timeout(900)
     pg.screenshot(path=str(OUT/'cmd.png'))
     pg.mouse.move(150,300);pg.mouse.wheel(0,120);pg.wait_for_timeout(200);pg.mouse.wheel(0,120);pg.wait_for_timeout(500)
-    pg.screenshot(path=str(OUT/'cmd_wheel.png'));return r.left<90&&r.right>90&&r.top<128&&r.bottom>128}).map(e=>e.tagName+'.'+e.className+' '+getComputedStyle(e).opacity+' '+getComputedStyle(e).backdropFilter+' '+getComputedStyle(e).filter)"));print('cmd focus',pg.evaluate("()=>WHL.it[WHL.f].dataset.ak"))
+    pg.screenshot(path=str(OUT/'cmd_wheel.png'));print('cmd focus',pg.evaluate("()=>WHL.it[WHL.f].dataset.ak"))
     pg.evaluate("()=>{AF.act='spell';AF.step='opt';AF.opt=0;renderAct()}");pg.wait_for_timeout(600)
     pg.screenshot(path=str(OUT/'opt.png'))
     for i in range(3):pg.mouse.move(150,450);pg.mouse.wheel(0,120);pg.wait_for_timeout(250)
