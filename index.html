@@ -4322,7 +4322,7 @@ const STAND_IDLE=10000;let stIdleT=0;
 // 새 대사가 와도 지금 대사는 최소 3초 보여 준 뒤 다음 대사로 넘어간다 (밀린 대사는 차례로)
 const ST_HOLD=3000;let stShown=null,stShownAt=0,stHoldT=0;
 function stPick(pool){const last=pool.at(-1);if(!last)return last;const i=stShown==null?-1:pool.findIndex(l=>l.id===stShown);
- const line=i>=0&&i<pool.length-1?(Date.now()-stShownAt<ST_HOLD?pool[i]:pool[i+1]):last;
+ const fresh=l=>Date.now()+NET.skew-(l.t||0)<STAND_IDLE,line=i>=0&&i<pool.length-1&&fresh(pool[i+1])?(Date.now()-stShownAt<ST_HOLD?pool[i]:pool[i+1]):last;// lines that came in while away are not replayed one by one
  if(line.id!==stShown){stShown=line.id;stShownAt=Date.now()}
  clearTimeout(stHoldT);if(line!==last)stHoldT=setTimeout(()=>{if(tab==='stage')renderStage()},Math.max(30,stShownAt+ST_HOLD-Date.now()+30));return line}
 function renderStage(remote){const vw=$('#view'),vb=vw&&vw.scrollHeight-vw.scrollTop-vw.clientHeight<4,S=P.stage,CL=stageChat(S),lines=[...S.lines,...CL].sort((a,b)=>(a.t||0)-(b.t||0)),line=stPick(lines.filter(l=>!l.fx)),sp=line?.who;
@@ -7091,6 +7091,7 @@ html[data-theme="metaphor"] #stagein>.dlg:not(#_) #dtext{color:#f4f1ea!important
 html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_){animation:mtcBoxIn .3s cubic-bezier(.2,.9,.25,1) both!important}
 html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_) .who{animation:mtcTagIn .28s .1s cubic-bezier(.2,.9,.25,1) both!important}
 html[data-theme="metaphor"] #stagein>.dlg.in:not(.nsp):not(#_),html[data-theme="metaphor"] #stagein>.dlg.in:not(.nsp):not(#_) .who{animation:none!important}
+html[data-theme="metaphor"] #stagein>.dlg:not(#_){clip-path:none}
 @keyframes mtcBoxIn{from{translate:-48px 0;opacity:0;clip-path:polygon(0 0,0 0,0 100%,0 100%)}to{translate:0 0;opacity:1;clip-path:polygon(0 -60px,100% -60px,100% 100%,0 100%)}}
 @keyframes mtcTagIn{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @media (prefers-reduced-motion:reduce){html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_),html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_) .who{animation:none!important}}
