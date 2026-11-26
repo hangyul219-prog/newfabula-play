@@ -4143,7 +4143,8 @@ function nextTurn(){const C=P.combat,ac=C.acted;if(C.chain&&!ac[C.chain]&&unitOf
   if(!rp&&!re)return'end';const other=C.first==='pc'?'npc':'pc';let s=(ap+ae)%2===0?C.first:other;if(s==='pc'&&!rp)s='npc';if(s==='npc'&&!re)s='pc';return s}
 /* battle motions: the sheet's 「전투 모션」 art per action; shown from the moment the action fires until it is finished (guard: while guarding) */
 const MO_MAX=45000;
-function moImg(c){const m=c.mo,id=m&&c.motions?.[m.a];if(!id)return'';if(m.a==='guard')return c.guard||!m.g&&Date.now()-(+m.t||0)<MO_MAX?id:'';return Date.now()-(+m.t||0)<MO_MAX?id:''}
+const HITMO={},HIT_MS=900;
+function moImg(c){if(c.motions?.hit&&(HITMO['c:'+c.id]||0)>Date.now())return c.motions.hit;const m=c.mo,id=m&&c.motions?.[m.a];if(!id)return'';if(m.a==='guard')return c.guard||!m.g&&Date.now()-(+m.t||0)<MO_MAX?id:'';return Date.now()-(+m.t||0)<MO_MAX?id:''}
 function moSet(u){if(!u?.pc)return;const a=AF.act;if(!a)return;u.o.mo={a,t:Date.now()};saveC();if(u.o.motions?.[a]){renderCombat();clearTimeout(moSet.tm);moSet.tm=setTimeout(()=>renderCombat(),MO_MAX+50)}}
 function moEnd(u){if(!u?.pc||!u.o.mo)return;if(u.o.mo.a==='guard'){u.o.mo.g=1;saveC();return renderCombat()}delete u.o.mo;saveC();renderCombat()}
 function roster(){
@@ -4195,7 +4196,7 @@ function syncSprites(H,F){const box=byId('units'),nt=nextTurn(),ac=P.combat.acte
     const sts=(u.o.guard?'<em>방어</em>':'')+lockTag(u.o)+actTag(u.o)+efxTag(u.o)+Object.entries(STATUS).filter(([k])=>u.o.status?.[k]).map(([k,v])=>`<em>${gi(k)}${v[0]}</em>`).join('');
     const AL=roundActs(u.k),L=AL.at(-1),la=L?`<div class="lact${L.ally?' ally':''}">${actChip(L)}${AL.length>1?`<em class="lmore">+${AL.length-1}</em><div class="lall"><small>이번 라운드 행동</small>${AL.map(x=>`<div class="lrow${x.ally?' ally':''}">${actChip(x)}</div>`).join('')}</div>`:''}</div>`:'';// one line over the head; the whole round on hover
     el.querySelector('.plate').innerHTML=`<b>${esc(u.name)}<span class="lvl">Lv${u.lv}</span></b>${u.show?`<div class="mini${cr?' cr':''}"><i style="width:${u.max?clamp(u.hp/u.max*100,0,100):0}%"></i></div>`:''}${sts?`<div class="pst">${sts}</div>`:''}${la}`;
-    const prev=HPMEM[u.k];if(prev!=null&&prev!==u.hp){popNum(el,u.hp-prev,u.show);vfxHp(el,u,u.hp-prev)}HPMEM[u.k]=u.hp;vfxState(el,u)}
+    const prev=HPMEM[u.k];if(prev!=null&&prev!==u.hp){popNum(el,u.hp-prev,u.show);if(u.hp<prev&&u.pc&&u.o.motions?.hit){HITMO[u.k]=Date.now()+HIT_MS;setTimeout(renderCombat,0);setTimeout(renderCombat,HIT_MS+30)}vfxHp(el,u,u.hp-prev)}HPMEM[u.k]=u.hp;vfxState(el,u)}
   for(const el of[...box.children])if(!keep.has(el.dataset.k))el.remove();if($('#modal .actx'))markTargets(AF._tk||[])}
 // sprite art carries different empty (transparent) margins; crop them once so the figure itself fills the sprite height
 const TRIM=new Map(),TRIMV=new Map();

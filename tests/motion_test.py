@@ -9,8 +9,8 @@ JS=r"""
 (()=>{const fig=(col,arm)=>{const c=document.createElement('canvas');c.width=120;c.height=200;const g=c.getContext('2d');g.fillStyle=col;
   g.beginPath();g.arc(60,40,22,0,7);g.fill();g.fillRect(40,62,40,80);g.fillRect(42,140,14,58);g.fillRect(64,140,14,58);
   g.save();g.translate(80,70);g.rotate(arm);g.fillRect(0,-6,48,12);g.restore();return c.toDataURL()};
- IMG.cache.set('t-spr',fig('#3a6ea5',1.2));IMG.cache.set('t-atk',fig('#c0392b',-0.9));IMG.cache.set('t-grd',fig('#27ae60',-1.6));
- T.reset();const c=CH.c1;c.sprite='t-spr';c.sprites=[{n:'기본',img:'t-spr'}];c.motions={atk:'t-atk',guard:'t-grd'};saveC();renderCombat()})()
+ IMG.cache.set('t-spr',fig('#3a6ea5',1.2));IMG.cache.set('t-atk',fig('#c0392b',-0.9));IMG.cache.set('t-grd',fig('#27ae60',-1.6));IMG.cache.set('t-hit',fig('#8e44ad',2.4));
+ T.reset();const c=CH.c1;c.sprite='t-spr';c.sprites=[{n:'기본',img:'t-spr'}];c.motions={atk:'t-atk',guard:'t-grd',hit:'t-hit'};saveC();renderCombat()})()
 """
 cur="()=>document.querySelector('#units [data-k=\"c:c1\"] img')?.dataset.img"
 with sync_playwright() as p:
@@ -42,5 +42,11 @@ with sync_playwright() as p:
     chk('guard finished = still guarding','t-grd');pg.screenshot(path=str(OUT/f'motion_guard_{TH}.png'))
     pg.evaluate("()=>{P.combat.acted={};T.open('레온')}");pg.wait_for_timeout(600)
     chk('next turn = guard off, base','t-spr')
+    pg.evaluate("()=>{CH.c1.hp-=5;saveC();renderCombat()}");pg.wait_for_timeout(250)
+    chk('HP drop = hit motion','t-hit');pg.screenshot(path=str(OUT/f'motion_hit_{TH}.png'))
+    pg.wait_for_timeout(1100)
+    chk('after hit = base','t-spr')
+    pg.evaluate("()=>{CH.c1.hp+=5;saveC();renderCombat()}");pg.wait_for_timeout(250)
+    chk('HP heal = no hit motion','t-spr')
     b.close()
 print('errors:',errs[:5]);print('PASS' if all(r[1] for r in R) and not errs else 'FAILED')
