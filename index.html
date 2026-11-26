@@ -2347,6 +2347,7 @@ html[data-theme="octo"]{--ic-ui:url(data:image/webp;base64,UklGRsZLAABXRUJQVlA4W
 
 #units .spr{touch-action:none;user-select:none;-webkit-user-select:none}
 #units .spr img{-webkit-user-drag:none}
+#units .spr img.mo-pop{animation:moPop .22s ease-out}@keyframes moPop{0%{transform:scale(.94) translateY(2%)}60%{transform:scale(1.04)}100%{transform:none}}
 #units .spr.battle-dragging{transition:none;cursor:grabbing!important;will-change:left,top}
 #units .spr.battle-dragging .bob{animation-play-state:paused}
 /* Dense encounters keep action effects and highlights, with static ambient art. */
@@ -2459,6 +2460,7 @@ html[data-theme="octo"] .tut-f .btn:not(.gold){color:#3a2a18;border-color:rgba(1
 
 #units .spr{touch-action:none;user-select:none;-webkit-user-select:none}
 #units .spr img{-webkit-user-drag:none}
+#units .spr img.mo-pop{animation:moPop .22s ease-out}@keyframes moPop{0%{transform:scale(.94) translateY(2%)}60%{transform:scale(1.04)}100%{transform:none}}
 #units .spr.battle-dragging{transition:none;cursor:grabbing!important;will-change:left,top}
 #units .spr.battle-dragging .bob{animation-play-state:paused}
 /* Dense encounters keep action effects and highlights, with static ambient art. */
@@ -3440,6 +3442,7 @@ function normalizeChar(c){
  c.spriteScale=finite(c.spriteScale,1,.7,2.2);c.spriteFlip=!!c.spriteFlip;
  // several battle sprites; c.sprite stays the one on the field, and is always in the list
  c.sprites=(Array.isArray(c.sprites)?c.sprites:[]).filter(s=>s&&s.img).map(s=>({n:String(s.n||''),img:String(s.img)}));if(c.sprite&&!c.sprites.some(s=>s.img===c.sprite))c.sprites.unshift({n:'기본',img:c.sprite});
+ c.motions=Object.fromEntries(Object.entries(c.motions&&typeof c.motions==='object'?c.motions:{}).filter(([k,v])=>v&&typeof v==='string'));
  c.id=String(c.id||uid());c.level=clamp(Math.round(finite(c.level,5)),1,99);c.attr=objectOr(c.attr);for(const k of Object.keys(ATTR)){const n=finite(c.attr[k],8);c.attr[k]=[6,8,10,12].reduce((a,b)=>Math.abs(b-n)<Math.abs(a-n)?b:a);}
  for(const k of ['status','buff','bonus','picks','active'])c[k]=objectOr(c[k]);
  for(const k of ['hp','mp','ip','def','mdef','init'])c.bonus[k]=finite(c.bonus[k]);
@@ -4138,9 +4141,14 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&BATTLE_DRAG.activ
 function nextTurn(){const C=P.combat,ac=C.acted;if(C.chain&&!ac[C.chain]&&unitOf(C.chain)?.o.hp>0)return'pc';const pl=[...pcs().filter(c=>c.hp>0),...(C.allies||[]).filter(a=>a.hp>0&&a.ownTurn)],en=C.enemies.filter(e=>e.hp>0);
   const ap=pl.filter(c=>ac[key(c.ownTurn?'a':'c',c.id)]).length,ae=en.filter(e=>ac[key('e',e.id)]).length;const rp=pl.length-ap,re=en.length-ae;
   if(!rp&&!re)return'end';const other=C.first==='pc'?'npc':'pc';let s=(ap+ae)%2===0?C.first:other;if(s==='pc'&&!rp)s='npc';if(s==='npc'&&!re)s='pc';return s}
+/* battle motions: the sheet's 「전투 모션」 art per action; shown from the moment the action fires until it is finished (guard: while guarding) */
+const MO_MAX=45000;
+function moImg(c){const m=c.mo,id=m&&c.motions?.[m.a];if(!id)return'';if(m.a==='guard')return c.guard||!m.g&&Date.now()-(+m.t||0)<MO_MAX?id:'';return Date.now()-(+m.t||0)<MO_MAX?id:''}
+function moSet(u){if(!u?.pc)return;const a=AF.act;if(!a)return;u.o.mo={a,t:Date.now()};saveC();if(u.o.motions?.[a]){renderCombat();clearTimeout(moSet.tm);moSet.tm=setTimeout(()=>renderCombat(),MO_MAX+50)}}
+function moEnd(u){if(!u?.pc||!u.o.mo)return;if(u.o.mo.a==='guard'){u.o.mo.g=1;saveC();return renderCombat()}delete u.o.mo;saveC();renderCombat()}
 function roster(){
   const H=pcs().map((c,i)=>{const d=derive(c);return{k:'c:'+c.id,pc:true,o:c,i,name:c.name,lv:c.level,hp:c.hp,max:d.maxHp,mp:c.mp,maxMp:d.maxMp,ip:c.ip,maxIp:d.maxIp,cr:d.crisis,
-    img:c.sprite||c.full||'',face:c.portrait||c.full||c.stand?.[0]?.img||'',flip:!!c.spriteFlip,scale:+c.spriteScale||1,show:true,d}});
+    img:moImg(c)||c.sprite||c.full||'',face:c.portrait||c.full||c.stand?.[0]?.img||'',flip:!!c.spriteFlip,scale:+c.spriteScale||1,show:true,d}});
   const A=(P.combat.allies||[]).map((a,i)=>({k:'a:'+a.id,pc:false,ally:true,o:a,i:H.length+i,name:a.name,lv:a.lv||5,hp:a.hp,max:a.maxHp,mp:a.mp||0,maxMp:a.maxMp||0,cr:Math.floor(a.maxHp/2),img:a.img||'',flip:false,scale:1,show:true}));
   const F=P.combat.enemies.map((e,i)=>({k:'e:'+e.id,pc:false,o:e,i,name:e.name,lv:e.lv,hp:e.hp,max:e.maxHp,mp:e.mp,maxMp:e.maxMp,cr:Math.floor(e.maxHp/2),
     img:e.img||'',flip:!!e.flip,scale:+e.size||1,show:GM||e.reveal}));
@@ -4183,7 +4191,7 @@ function syncSprites(H,F){const box=byId('units'),nt=nextTurn(),ac=P.combat.acte
     el.style.left=x+'%';el.style.top=y+'%';el.style.zIndex=Math.round(y*10);el.style.setProperty('--sz',sz.toFixed(2));el.style.setProperty('--sprite-scale',u.scale);
     const cr=u.hp>0&&u.hp<=u.cr,down=u.hp<=0,acted=!!ac[u.k];
     el.className=`spr${auFly(u.o)?' flying':''} ${u.pc?'pc':'foe'}${u.img?' hasimg':''}${BATTLE_DRAG.active?.k===u.k&&BATTLE_DRAG.active.moved?' battle-dragging':''}${SEL===u.k?' sel':''}${acted?' acted':''}${down?' down':''}${!acted&&!down&&nt===(u.pc?'pc':'npc')?' turn':''}`;
-    auArcSpr(el,u);auImmSweep(u);const im=el.querySelector('img');if(u.img&&im.dataset.img!==u.img){im.dataset.img=u.img;hydrate(el)}
+    auArcSpr(el,u);auImmSweep(u);const im=el.querySelector('img');if(u.img&&im.dataset.img!==u.img){if(im.dataset.img){im.classList.remove('mo-pop');void im.offsetWidth;im.classList.add('mo-pop')}im.dataset.img=u.img;hydrate(el)}
     const sts=(u.o.guard?'<em>방어</em>':'')+lockTag(u.o)+actTag(u.o)+efxTag(u.o)+Object.entries(STATUS).filter(([k])=>u.o.status?.[k]).map(([k,v])=>`<em>${gi(k)}${v[0]}</em>`).join('');
     const AL=roundActs(u.k),L=AL.at(-1),la=L?`<div class="lact${L.ally?' ally':''}">${actChip(L)}${AL.length>1?`<em class="lmore">+${AL.length-1}</em><div class="lall"><small>이번 라운드 행동</small>${AL.map(x=>`<div class="lrow${x.ally?' ally':''}">${actChip(x)}</div>`).join('')}</div>`:''}</div>`:'';// one line over the head; the whole round on hover
     el.querySelector('.plate').innerHTML=`<b>${esc(u.name)}<span class="lvl">Lv${u.lv}</span></b>${u.show?`<div class="mini${cr?' cr':''}"><i style="width:${u.max?clamp(u.hp/u.max*100,0,100):0}%"></i></div>`:''}${sts?`<div class="pst">${sts}</div>`:''}${la}`;
@@ -4863,7 +4871,7 @@ const ACTS={pc:[['atk','공격','ATTACK'],['spell','주문','SPELL'],['skill','�
 function eDie(e,a){let d=(+e.attr?.[a]||8)+(efxDie(e,a)?2:0);for(const s in STATUS)if(e.status?.[s]&&STATUS[s][1].includes(a))d-=2;return Math.max(6,d)}
 function unitOf(k){if(typeof k!=='string')return null;const[t,id]=k.split(':');if(t==='a'){const a=(P.combat.allies||[]).find(x=>x.id===id);if(!a)return null;return{k,pc:false,ally:true,o:a,name:a.name,def:+a.def||0,mdef:+a.mdef||0,die:a2=>eDie(a,a2),art:a.img||''}}if(t==='c'){const c=CH[id];if(!c)return null;const d=derive(c);return{k,pc:true,o:c,name:c.name,def:d.def,mdef:d.mdef,die:a=>d.cur[a],art:artOf(c),d}}
   const e=P.combat.enemies.find(x=>x.id===id);if(!e)return null;return{k,pc:false,o:e,name:e.name,def:+e.def,mdef:+e.mdef,die:a=>eDie(e,a),art:e.img||''}}
-function actOpen(k){const u=unitOf(k);if(!u||u.o.hp<=0||!(GM||mineK(k)))return;efxTick(k,'start');if(u.o.guard||u.o.heroNap){u.o.guard=false;u.o.heroNap=false;u.pc?saveC():saveP()}// a new turn ends the previous guard
+function actOpen(k){const u=unitOf(k);if(!u||u.o.hp<=0||!(GM||mineK(k)))return;efxTick(k,'start');if(u.o.guard||u.o.heroNap){u.o.guard=false;u.o.heroNap=false;if(u.o.mo?.a==='guard')delete u.o.mo;u.pc?saveC():saveP();renderCombat()}// a new turn ends the previous guard
   Object.keys(AF).forEach(x=>delete AF[x]);Object.assign(AF,{session:uid(),k,step:'cmd',act:ACTS[u.pc?'pc':u.ally?'ally':'foe'].map(a=>a[0]).find(a=>!isLocked(u.o,a))||'atk',opt:0,targets:[],mod:0,extra:0,type:'',res:null,attr:['dex','ins'],dl:10,clock:0,item:0,status:'dazed',text:'',done:true});renderAct()}
 // a hero's psychic gifts and symbols (picked on the sheet) listed with the spells: no target needed; a gift costs MP (5 per filled brainwave segment, min 5), a symbol 2 IP
 function giftOpts(c){return['사이킥 재능','상징술'].flatMap(k=>{const g=CHOICE_SK[k].lab==='재능',pk=(c.picks?.[k]||[]).slice(0,choiceMax(c,k));// over the limit after SL went down: the first ones count
@@ -5011,7 +5019,7 @@ function fpHTML(u,r){const e=r.e,fp=+u.o.fp||0;if(!u.pc||!e||!e.dice)return'';if
 function resHTML(r){return`<div class="act-res"><div class="dice-line">${r.e?`${r.e.dice.map((d,i)=>`<span class="ld${d.r===r.e.hr?' hr':''}${r.e.pick?.includes(i)?' pk':''}" role="button" tabindex="0" aria-label="d${d.d}, 눈 ${d.r}, 재굴림 선택" aria-pressed="${!!r.e.pick?.includes(i)}" data-ar="pick" data-i="${i}">${DRsvg(d.d,d.r)}<small>d${d.d}</small></span>`).join('')}<span class="lto">= ${r.e.total}</span>${r.e.crit?'<i class="v crit">대성공</i>':r.e.fumble?'<i class="v fum">대실패</i>':''}`:''}</div>
   ${r.rows?r.rows.map(x=>`<div class="hitrow ${x.hit?'hit':'miss'}"><b>${esc(x.name)}</b><span>${x.vsTxt}</span><span>${x.hit?x.dmgTxt:'빗나감'}</span></div>`).join(''):''}${r.msg?`<p>${esc(r.msg).replace(/&lt;br\s*\/?&gt;/g,'<br>').replace(/&lt;span class=&quot;muted&quot;&gt;/g,'<span class="muted">').replace(/&lt;\/span&gt;/g,'</span>')}</p>`:''}</div>`}
 function actRoll(){if(AF.busy||AF.res||AF.finished)return;const u=unitOf(AF.k);if(!u)return toast('행동 주체가 사라졌어요',1);if(u.o.hp<=0&&!AF.xm)return toast('전투불능 상태에서는 행동할 수 없어요',1);if(isLocked(u.o,AF.act)&&!AF.xm)return toast('이번 턴 금지된 행동이에요',1);if(autoTax(u))return;const opts=actOptions(u,AF.act),o0=opts[AF.opt]||opts[0],o=autoOpt(u,o0&&AF.dty&&o0.dmg!=null?{...o0,type:AF.dty}:o0);
-  const pre=AF.pre;AF.pre=null;const xb=AF.x?.bon!=null?+AF.x.bon:AF.x?.sl?xsl(u,AF.x):0;// free-action skills that add SL to their checks
+  moSet(u);const pre=AF.pre;AF.pre=null;const xb=AF.x?.bon!=null?+AF.x.bon:AF.x?.sl?xsl(u,AF.x):0;// free-action skills that add SL to their checks
   const roll=(a1,a2,mod,label,dl)=>{if(pre)return pre;const e=judge({kind:'roll',who:u.name,tg:tg.map(t=>t.name).join(', '),label:AF.x?`${label} [${AF.x.n}]`:AF.xm==='more'?`${label} [추가 행동]`:label,dice:[{d:u.die(a1),r:rd(u.die(a1))},{d:u.die(a2),r:rd(u.die(a2))}],mod:mod+xb,gearEqualCrit:!!o?.equalCrit,dl:dl||null,art:u.art,side:u.pc?'pc':'foe',cid:u.pc?u.o.id:''});
     if(e.fumble&&u.pc){u.o.fp=(+u.o.fp||0)+1;saveC()}pushLog(e);return e};
   const tg=AF.targets.map(unitOf).filter(Boolean);if(tg.length!==AF.targets.length)return toast('대상이 변경됐어요. 다시 골라 주세요.',1);
@@ -5979,7 +5987,7 @@ function lastAct(){const u=unitOf(AF.k);if(!u||!AF.res)return;const nm=Object.va
 function roundActs(k){const C=P.combat,L=(C.acts?.[k]||[]).filter(x=>x.r===C.round);return L.length?L:C.last?.[k]?.r===C.round?[C.last[k]]:[]}// function, not const: the first render can run before this line
 // one action as a chip: [추가] 이름 → 대상 · dice total (crit / fumble / fail coloured) · hits
 function actChip(x){return`${x.m?`<i class="ltag">${x.m==='start'?'개시 전':'추가'}${x.x?' · '+esc(x.x):''}</i>`:''}<b${x.dd?` class="tipd" data-tip="${esc(x.a+'\n'+x.dd)}"`:''}>${esc(x.a)}</b>${x.t?.length?`<span>→ ${esc(x.t.join(', '))}</span>`:''}${x.d?`<i class="ldie${x.d.c?' crit':x.d.f?' fum':x.d.ok===false?' fail':''}" title="판정 결과">${x.d.v}${x.d.c?' 대성공':x.d.f?' 대실패':''}</i>`:''}${x.h?`<i class="lhit">명중 ${x.h[0]}/${x.h[1]}</i>`:''}`}
-function actFinish(){if(AF.finished||AF.busy)return;if(AF.res&&autoPost(AF.res))return;autoFinish();AF.finished=true;lastAct();const x=$('#modal .actx');if(x){markTargets([]);byId('arena')?.classList.remove('ax-open');x.classList.add('leave');setTimeout(()=>{if(x.isConnected&&x.classList.contains('leave'))x.remove()},220)}if(AF.done){const ak=AF.compOwner||AF.k;P.combat.acted[ak]=true;unlock(ak)}saveP();if(!x)$('#modal').innerHTML='';renderCombat();autoRound()}
+function actFinish(){if(AF.finished||AF.busy)return;if(AF.res&&autoPost(AF.res))return;autoFinish();moEnd(unitOf(AF.k));AF.finished=true;lastAct();const x=$('#modal .actx');if(x){markTargets([]);byId('arena')?.classList.remove('ax-open');x.classList.add('leave');setTimeout(()=>{if(x.isConnected&&x.classList.contains('leave'))x.remove()},220)}if(AF.done){const ak=AF.compOwner||AF.k;P.combat.acted[ak]=true;unlock(ak)}saveP();if(!x)$('#modal').innerHTML='';renderCombat();autoRound()}
 // core: once every unit still standing has taken its turn the round ends and the next begins; only the client that marked the last turn advances it
 function autoRound(){if(nextTurn()!=='end'||!pcs().some(c=>c.hp>0)||!P.combat.enemies.some(e=>e.hp>0))return;const r=P.combat.round;
   setTimeout(()=>{const C=P.combat;if(C.round!==r||nextTurn()!=='end')return;C.round++;C.acted={};saveP();logText('GM',`라운드 ${C.round} 시작`);renderCombat()},1200)}
