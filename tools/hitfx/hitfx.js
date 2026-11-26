@@ -24,23 +24,28 @@ const HFX={gl:null,cv:null,prog:null,buf:null,loc:{},tex:new Map(),list:[],raf:0
    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));if(src)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);return t},
  art(name){const th=document.documentElement.dataset.theme||'metaphor',key=th+'/vfx/'+name,src=FXDATA[key]||FXDATA['metaphor/vfx/'+name];if(!src)return null;let r=this.tex.get(src);
    if(!r){r={t:null,ok:false};this.tex.set(src,r);const im=new Image();im.onload=()=>{if(!this.gl)return;r.t=this.mkTex(im);r.ok=true;r.im=im};im.src=src}return r},
- attach(){const ar=byId('arena'),un=byId('units');if(!ar||!un)return false;if(this.cv.parentNode!==ar||this.cv.previousElementSibling!==un)un.after(this.cv);return true},
+ attach(){const ar=byId('arena'),un=byId('units');if(!ar||!un)return false;if(this.cv.parentNode!==ar||this.cv.previousElementSibling!==un)un.after(this.cv);
+   if(!this.top){this.top=document.createElement('div');this.top.className='hfx-top'}if(this.top.previousElementSibling!==this.cv)this.cv.after(this.top);return true},
+ /* the damage number would sit under the burst: lift the newest one onto a layer over the canvas, same spot, same theme look */
+ liftNum(el){const n=[...el.querySelectorAll('.body>.dmgn')].pop(),bd=el.querySelector('.body');if(!n||!bd)return;const a=byId('arena').getBoundingClientRect(),r=bd.getBoundingClientRect(),ph=parseFloat(n.style.getPropertyValue('--ph'))||0;
+   n.style.left=(r.left+r.width/2-a.left).toFixed(1)+'px';n.style.bottom=(a.bottom-(r.top-ph)).toFixed(1)+'px';n.style.top='auto';this.top.append(n)},
  /* one hit on one unit: el = .spr, d = HP change (<0), ty = VFX_TY name, cr = crit, ko */
  hit(el,u,d,ty,cr,ko){if(!this.init()||!this.attach())return false;const now=performance.now(),rm=matchMedia('(prefers-reduced-motion:reduce)').matches;
    const p=Math.min(1.25,Math.max(.4,Math.abs(d)/Math.max(1,u.max||1)*3))*(cr?1.35:1),hs=rm?0:Math.round(55+55*Math.min(p,1)+(cr?60:0)),dir=(u.pc||u.ally)?-1:1;
    const e={el,u,k:u.k,t0:now,hs,p,dir,cr,ko,tint:this.TINT[ty]||this.TINT.physical,img:el.querySelector('.bob img'),sp:null,spOk:true,seed:Math.random()*6.28,
      bursts:[{art:this.art('hit-'+ty),at:0,sz:1.15},...(cr?[{art:this.art('crit'),at:90,sz:1.35}]:[]),...(ko?[{art:this.art('ko'),at:380,sz:1.3}]:[])],shards:[],shDone:false};
    for(const x of this.list)if(x.k===e.k){x.dead=true}// a new hit on the same unit replaces the old one
-   this.list.push(e);el.classList.add('glh');
+   this.reap();
+   this.list.push(e);el.classList.add('glh');try{this.liftNum(el)}catch{}
    if(hs){const un=byId('units');un.classList.add('hstop');clearTimeout(this._hs);this._hs=setTimeout(()=>un.classList.remove('hstop'),hs)}
    const a=rm?0:(2+7*Math.min(p,1))*(cr?1.5:1);if(a>=this.shake.a*Math.max(0,1-(now-this.shake.t0)/this.shake.dur||0)){this.shake={a,t0:now+hs*.5,dur:260+(cr?120:0)}}
-   if(!this.raf)this.raf=requestAnimationFrame(t=>this.frame(t));return true},
+   if(!this.raf)this.raf=requestAnimationFrame(t=>this.frame(t));clearTimeout(this._sw);this._sw=setTimeout(()=>this.sweep(),this.MAXT+50);return true},
  spriteTex(e){if(!e.spOk)return null;const im=e.img;if(!im||!im.complete||!im.naturalWidth||getComputedStyle(im).display==='none')return null;const gl=this.gl;
    if(!e.sp)e.sp=this.mkTex(null);gl.bindTexture(gl.TEXTURE_2D,e.sp);if(e.src!==im.currentSrc){try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);e.src=im.currentSrc}catch(err){e.spOk=false;e.el.classList.remove('glh');return null}}return e.sp},
  contentRect(im,cr){const nw=im.naturalWidth,nh=im.naturalHeight,k=Math.min(im.clientWidth/nw,im.clientHeight/nh)||0,s=cr.width/(im.clientWidth||1),w=nw*k*s,h=nh*k*s;return{x:cr.left+(cr.width-w)/2,y:cr.bottom-h,w,h}},
  quad(tex,x,y,w,h,rot,M,o){const gl=this.gl,L=this.loc;gl.bindTexture(gl.TEXTURE_2D,tex);gl.uniform4f(L.R,x,y,w,h);gl.uniform1f(L.A,rot||0);gl.uniform1i(L.M,M);
    gl.uniform3fv(L.K,o.K||[1,1,1]);gl.uniform1f(L.F,o.F??1);gl.uniform1f(L.G,o.G||0);gl.uniform1f(L.U,o.U??-1);gl.uniform1f(L.S,o.S||0);gl.uniform2f(L.X,...(o.X||[0,0]));gl.uniform4f(L.B,...(o.B||[0,0,1,1]));gl.drawArrays(gl.TRIANGLE_STRIP,0,4)},
- frame(now){this.raf=0;const gl=this.gl;if(!gl)return;const cv=this.cv;if(!cv.isConnected&&!this.attach()){this.list=[];return this.cleanup()}
+ frame(now){this.raf=0;const gl=this.gl;if(!gl)return;const cv=this.cv;if(!cv.isConnected&&!this.attach()){for(const e of this.list)e.dead=true;this.reap();return this.cleanup()}
    const box=cv.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1),W=Math.round(box.width*dpr),H=Math.round(box.height*dpr);if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}
    gl.viewport(0,0,W,H);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.uniform2f(this.loc.C,W,H);
    // screen shake on the field layers (the canvas reads rects, so it follows)
@@ -72,7 +77,11 @@ const HFX={gl:null,cv:null,prog:null,buf:null,loc:{},tex:new Map(),list:[],raf:0
          const f=1-s.age/s.life,spd=Math.hypot(s.vx,s.vy),st2=1+Math.min(2.2,spd/600);
          this.quad(b0.art.t,(s.x-box.left)*dpr,(s.y-box.top)*dpr,s.sz*st2*dpr,s.sz*dpr,Math.atan2(s.vy,s.vx),2,{F:f,B:s.B})}}
      if(!alive){e.dead=true}}
-   for(const e of this.list)if(e.dead){e.el.classList.remove('glh');const bd=e.el.querySelector('.body');if(bd)bd.style.transform='';if(e.sp)gl.deleteTexture(e.sp)}
-   this.list=this.list.filter(e=>!e.dead);
+   this.reap();
    if(this.list.length||sa)this.raf=requestAnimationFrame(t=>this.frame(t));else this.cleanup()},
+ reap(){const gl=this.gl;for(const e of this.list)if(e.dead){if(!this.list.some(x=>!x.dead&&x.el===e.el)){e.el.classList.remove('glh');const bd=e.el.querySelector('.body');if(bd)bd.style.transform=''}if(e.sp&&gl)gl.deleteTexture(e.sp);e.sp=null}// a unit hit again keeps its class/transform for the new effect
+   this.list=this.list.filter(e=>!e.dead)},
+ /* rAF stops in a hidden tab (and in headless runs): this timer still ends every effect, so no unit is left flashed or shoved */
+ sweep(){const now=performance.now();for(const e of this.list)if(now-e.t0>this.MAXT)e.dead=true;this.reap();
+   if(this.list.length){clearTimeout(this._sw);this._sw=setTimeout(()=>this.sweep(),400)}else{if(this.raf){cancelAnimationFrame(this.raf);this.raf=0}this.shake.a=0;this.cleanup()}},MAXT:1800,
  cleanup(){for(const id of['units','bgl']){const n=byId(id);if(n)n.style.translate=''}if(this.gl){const gl=this.gl;gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT)}}};

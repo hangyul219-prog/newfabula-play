@@ -14,5 +14,6 @@ def rep(o,n):
 rep("vfxShow(el,'hit-'+(VFX_TY[fresh?h.ty:'물리']||'physical'));if(fresh&&h.cr)",
     "if(VOL.fx!==false&&HFX.hit(el,u,d,VFX_TY[fresh?h.ty:'물리']||'physical',!!(fresh&&h.cr),u.hp<=0))return;vfxShow(el,'hit-'+(VFX_TY[fresh?h.ty:'물리']||'physical'));if(fresh&&h.cr)")
 rep(".spr.hit .body{animation:hit .5s}",
-    ".spr.hit .body{animation:hit .5s}\n.hfx{position:absolute;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}.spr.glh .body{animation:none!important;filter:none}.units.hstop .bob,.units.hstop .shadow,.units.hstop .dmgn,.units.hstop .slice{animation-play-state:paused!important}")
+    ".spr.hit .body{animation:hit .5s}\n.hfx{position:absolute;inset:0;z-index:1;pointer-events:none;width:100%;height:100%}.hfx-top{position:absolute;inset:0;z-index:1;pointer-events:none}.spr.glh .body{animation:none!important;filter:none}.units.hstop .bob,.units.hstop .shadow,.units.hstop .dmgn,.units.hstop .slice{animation-play-state:paused!important}")
+rep("el.className=`spr${auFly(u.o)?' flying':''}","el.className=`spr${auFly(u.o)?' flying':''}${typeof HFX!=='undefined'&&HFX.list.some(e=>e.k===u.k&&!e.dead)?' glh':''}")
 open(p,'wb').write(b);print('ok')
