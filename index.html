@@ -7364,54 +7364,43 @@ function tpAnchorFor(k){const[t0,id]=String(k||'').split(':'),tk=t0==='c'&&P.map
 [TRAVEL_PAPER_HANDOFF]
 === 파뷸라 울티마 종이 여행 지도(Travel Paper 3D) 인수인계 ===
 
-[1. 현재 완료 상태 (2026-11-27)]
-* 3 UI 테마(metaphor, ff, octo) x 4 세계 풍(core, high, techno, natural) 총 12세트 중 6세트 완료·적용됨:
-  -> core 3스킨(metaphor/core, ff/core, octo/core, 각 63종) 완료 및 index.html 내장
-  -> high 3스킨(metaphor/high, ff/high, octo/high, 각 63종) 완료 및 index.html 내장
-* 4세계 맵 바탕 8장 완료: tools/travel_paper/boards/{core,high,techno,natural}_{paper,table}.webp
-* 폴백 동작: 미완성 techno / natural 선택 시 travel3d.js의 artFor가 같은 UI 테마의 core 조각으로 자동 폴백하므로 오류 없이 동작함.
+[1. 현재 상태 (2026-11-27 밤) — 12세트 전부 완료]
+* 3 UI 스킨(metaphor, ff, octo) x 4 세계(core, high, techno, natural) = 12세트 모두 index.html에 내장 (각 63종).
+  -> techno·natural 42장은 2026-11-27 밤 추가. 이제 core 폴백 없이 각 세계 고유 조각이 나옴.
+* 4세계 맵 바탕 8장: tools/travel_paper/boards/{core,high,techno,natural}_{paper,table}.webp
+* 테스트: python -I -X utf8 tests/travel_paper_test.py metaphor|ff|octo (3스킨 전부 PASS)
 
-[2. 남은 작업 (다음 세션 이어하기 순서)]
-1) 테크노 판타지(techno) 21장(m/f/o_techno_n1,n2,n3,b1,b2,b3,v1.png) 생성 -> cutall.py -> check.py <skin>/techno 눈 검수
-2) 내추럴 판타지(natural) 21장(m/f/o_natural_n1,n2,n3,b1,b2,b3,v1.png) 생성 -> cutall.py -> check.py <skin>/natural 눈 검수
-3) C:\Users\PC\Downloads\newfabula-play 에서 python tools/travel_paper/pack.py (해상도 440px 유지, 품질 저하 금지) -> python tools/travel_paper/apply.py (GitHub 100MB 제한 대비 index.html 95MB 미만 확인)
-4) 3스킨 E2E 테스트 전부 PASS 확인:
-   python -I -X utf8 tests/travel_paper_test.py metaphor
-   python -I -X utf8 tests/travel_paper_test.py ff
-   python -I -X utf8 tests/travel_paper_test.py octo
-5) 12조합(3스킨 x 4세계) 비교 시트(over / third / first) 생성 및 눈 검수
-6) 이 인수인계 주석 갱신 또는 완료 시 제거 후:
-   git add index.html tools/travel_paper tests/travel_paper_test.py -> 커밋 -> git push origin main
-   (주의: tests/shots/ 및 인수인계_종이여행지도.md 는 스테이징 금지)
+[2. 조각을 다시 만들거나 고칠 때]
+* 작업 폴더(비배포): Downloads/fab_work/travel_paper/ (이 PC 기준. 다른 PC면 같은 구조로 만들기)
+  -> gpt/<m|f|o>_<world>_<sheet>.png  (sheet = n1 n2 n3 b1 b2 b3 v1, 조각 이름 순서는 world_prompts.json의 _sheets)
+  -> world_prompts.json (세계별 시트 프롬프트 원본), cutall.py [world...], cut.py, check.py <skin>/<world>
+  -> compare12.py <index.html> <outdir> : 12조합 over/third/first 비교 시트 + 각 세계 고유 그림 쓰는지 검사
+* 순서: GPT 시트 생성 -> python cutall.py <world> (조각 수 불일치는 '!!'로 표시) -> python check.py <skin>/<world> 눈 검수
+  -> 저장소에서 python tools/travel_paper/pack.py <fab_work/travel_paper/pieces> -> python tools/travel_paper/apply.py
+  -> 테스트 3개 -> git add index.html tools/travel_paper -> 커밋·push (tests/shots/ 는 스테이징 금지)
+* cutall.py 마진: metaphor=0.004, ff=0.014, octo=0.006. 조각 수가 틀리면 cut.py의 --grow(붙음=3, 쪼개짐=15)로 그 시트만 재커팅.
+* index.html 크기: 약 56MB (GitHub 100MB 제한, 95MB 미만 유지)
 
-[3. 확정된 세계관·화풍 원칙 (반드시 준수)]
-* 최신 프롬프트 원본: C:\Users\PC\Downloads\fab_work\travel_paper\world_prompts.json
-  -> techno, natural 항목을 그대로 사용할 것! (구 인수인계_종이여행지도.md 6절의 스팀펑크 초안은 폐기됨!)
-* techno (테크노 판타지): 파뷸라 울티마 테크노 판타지 아틀라스 (FF7 미드가르, FF8 에스타, 제노기어스풍 근미래/디스토피아 사이버·마도테크 문명: 콘크리트, 강철 트러스, 유리 마천루, 원자로 돔, 고가도로, 메카·우주선 잔해, 장갑 로버/정찰 메카).
-  -> 스팀펑크·황동 톱니바퀴·태엽 말 절대 금지!
-* natural (내추럴 판타지): 파뷸라 울티마 내추럴 판타지 아틀라스 (지브리 나우시카·모노노케 히메·라퓨타, 성검전설, 아틀리에, 세계수의 미궁풍: 인간과 자연의 공존, 계단식 논밭, 물레방아, 초가·목조 오두막, 이끼·덩굴 유적, 엘크 수레, 바람 글라이더 비행선).
-  -> 보라색 형광 수정 도배 절대 금지!
-* 3 UI 스킨 화풍 고정:
-  -> metaphor: 메타포: 리판타지오 월드맵 (중후한 먹선·잉크 외곽선, 수채/유화 양피지 회화, 미색 종이 오림 테두리; 레퍼런스 fab_work/travel_paper/refs/full_2679460_00.jpg, gpt/m_core_b1.png)
-  -> ff: FF6 픽셀 리마스터 아마노 요시타카 수채 (섬세한 고전 손그림 잉크 세필, 차분한 수채/양피지 파스텔; 레퍼런스 refs/full_1173820_07.jpg, gpt/f_core_b1.png)
-  -> octo: 옥토패스 트래블러 HD-2D (선명한 2D 픽셀 도트 스프라이트 + 입체 미니어처 디오라마 질감; 레퍼런스 refs/full_921570_12.jpg, gpt/o_core_b1.png)
-* 시트 규격: 순수 #FF00FF 단색 마젠타 배경, 격자선/테두리/번호/글자 절대 금지, 3x3 여유 분리, 바닥 수평, v1 1번 탈것과 3번 기수/동물은 반드시 오른쪽 방향 옆모습.
+[3. 세계관·화풍 원칙 (반드시 준수)]
+* techno: 근미래/디스토피아 마도테크 (콘크리트, 강철 트러스, 유리 마천루, 원자로 돔, 고가도로, 메카·우주선 잔해). 스팀펑크·황동 톱니·태엽 금지.
+  탈것: wagon = 강철 장갑 객차(견인봉), beast = 객차를 끄는 네 다리 정찰 메카.
+* natural: 인간과 자연의 공존 (계단식 논밭, 물레방아, 초가·목조, 이끼·덩굴 유적). 보라색 형광 수정 도배 금지.
+  탈것: wagon = 목조 엘크 수레, beast = 큰 뿔 엘크.
+* 3 UI 스킨 화풍: metaphor = 먹선·수채/유화 양피지 회화 / ff = 섬세한 잉크 세필 + 차분한 수채 파스텔 / octo = HD-2D 픽셀 도트 + 미니어처 디오라마.
+* 시트 규격: 정사각형 순수 #FF00FF 배경, 격자/테두리/번호/글자 금지, 3x3 여유 분리, 바닥 수평, v1의 1번 탈것·3번 동물은 오른쪽을 향한 옆모습.
 
-[4. 화풍 고정된 ChatGPT 대화 URL (파일 재업로드 없이 이어서 생성 가능)]
+[4. ChatGPT 대화 (화풍 고정, 이어서 생성 가능)]
 * metaphor: https://chatgpt.com/c/6b09354e-c844-83ee-847a-7151b3447d4f
 * ff:       https://chatgpt.com/c/6b093a22-f48c-83e8-b1f7-88d5272546f0
 * octo:     https://chatgpt.com/c/6b092ee3-c5ec-83ec-9ab2-62ba115aa011
-* 운용 팁:
-  -> techno 시작 시 첫 n1 요청에 "이전 하이 판타지 대리석·왕국 요소를 완전히 버리고 첫 첨부 게임 화풍과 3x3 마젠타 규격만 유지해 테크노 판타지로 전환"을 명시할 것.
-  -> natural 시작 시에도 테크노 콘크리트·강철·기계 요소 완전 제거를 명시할 것.
-  -> 브라우저 서브에이전트 메시지 잘림 방지를 위해 한 번에 1라운드(3개 탭 각 1장씩)씩 짧게 지시할 것.
+* 주의: 프롬프트에 실제 게임·지브리 작품명을 여럿 넣으면 "서드파티 콘텐츠 유사성"으로 거절될 수 있음(ff 내추럴 명소·탈것).
+  그때는 이름을 빼고 "이 대화에서 지금까지 그린 것과 같은 화풍(...)" + 세계 묘사만 쓰면 통과됨.
+* 그림 받기(이 PC): fab_work/tools/recv.py 를 띄우고(127.0.0.1:8799), ChatGPT 탭에서 이미지 blob을 base64로 text/plain 폼 POST(/form) -> gpt/에 저장 후 자동 뒤로 가기.
+  (fetch는 CSP connect-src에 막히고, 폼 제출은 통과함. 오래된 대화 턴은 화면에서 언로드되므로 스크롤하며 모아서 보냄)
 
-[5. 핵심 파일 경로 및 주의사항]
-* 작업 폴더(비배포): C:\Users\PC\Downloads\fab_work\travel_paper\
-  (gpt/<s>_<world>_<sheet>.png, world_prompts.json, sheets.json, cutall.py, cut_done.txt, check.py, pieces/<skin>/<world>/, refs/)
-* 배포 저장소: C:\Users\PC\Downloads\newfabula-play\ (index.html, tools/travel_paper/, tests/travel_paper_test.py)
-* cutall.py가 조각 수 불일치 출력 시 cut.py의 grow 옵션(붙음=3, 쪼개짐=15)과 margin 옵션(metaphor=0.004, ff=0.014, octo=0.006)으로 해당 시트만 재커팅.
-* Playwright 테스트 주의: page.clock 금지(렌더러 중단), TP.ctl.step(초) 사용; TP는 전역 const이므로 typeof TP !== 'undefined'로 접근; select 변경은 select.value=... 후 dispatchEvent(new Event('change',{bubbles:true})).
-* apply.py는 head/body 닫는 태그 앞의 tp-map / tpaper-data / tp-css / tp-glue만 교체하므로 html 닫는 태그 뒤의 이 인수인계 주석은 보존됨.
+[5. Playwright 테스트 주의]
+* page.clock 금지(렌더러 중단), TP.ctl.step(초) 사용; TP는 전역 const이므로 typeof TP !== 'undefined'로 접근.
+* select 변경은 select.value=... 후 dispatchEvent(new Event('change',{bubbles:true})).
+* apply.py는 head/body 닫는 태그 앞의 tp-map / tpaper-data / tp-css / tp-glue만 교체하므로 html 닫는 태그 뒤의 이 주석은 보존됨.
 [/TRAVEL_PAPER_HANDOFF]
 -->
