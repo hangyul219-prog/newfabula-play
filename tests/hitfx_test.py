@@ -27,6 +27,9 @@ with sync_playwright() as p:
         pg.keyboard.press('Enter');pg.wait_for_timeout(1500)
     o=pg.get_by_text('오프라인으로만 쓰기')
     if o.count() and o.first.is_visible():o.first.click();pg.wait_for_timeout(800)
+    for _ in range(20):
+        if pg.evaluate("()=>!document.getElementById('title')||getComputedStyle(document.getElementById('title')).display==='none'"):break
+        pg.keyboard.press('Enter');pg.wait_for_timeout(800)
     ok('title closed',pg.evaluate("()=>!document.getElementById('title')||getComputedStyle(document.getElementById('title')).display==='none'"))
     pg.evaluate((D/'t_auto.js').read_text(encoding='utf-8'));pg.evaluate("()=>{document.querySelector('#tabs [data-tab=\"combat\"]')?.click()}");pg.wait_for_timeout(500)
     pg.evaluate(SETUP);pg.wait_for_timeout(1500)

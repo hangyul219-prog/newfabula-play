@@ -44,7 +44,9 @@ with sync_playwright() as p:
         ok(f'[{a}] fired (mo set)',fired==a,fired)
         ok(f'[{a}] window A shows motion',img(A,'c:c1')==f't-c1-{a}',img(A,'c:c1'))
         ok(f'[{a}] window B shows motion',img(B,'c:c1')==f't-c1-{a}',img(B,'c:c1'))
-        A.evaluate("()=>{try{if(AF.res?.apply&&!AF.res.applied)actApply()}catch(e){};actFinish()}");A.wait_for_timeout(350);B.wait_for_timeout(250)
+        A.evaluate("()=>{try{if(AF.res?.apply&&!AF.res.applied)actApply()}catch(e){};actFinish()}");A.wait_for_timeout(300);B.wait_for_timeout(100)
+        ok(f'[{a}] just finished: held in A',img(A,'c:c1')==f't-c1-{a}',img(A,'c:c1'));ok(f'[{a}] just finished: held in B',img(B,'c:c1')==f't-c1-{a}',img(B,'c:c1'))
+        A.wait_for_timeout(1600);B.wait_for_timeout(100)
         want=f't-c1-{a}' if a=='guard' else 't-c1-spr'
         ok(f'[{a}] after finish A',img(A,'c:c1')==want,img(A,'c:c1'));ok(f'[{a}] after finish B',img(B,'c:c1')==want,img(B,'c:c1'))
     A.evaluate("()=>{P.combat.acted={};T.open('레온');actFinish()}");A.wait_for_timeout(300)
@@ -55,7 +57,7 @@ with sync_playwright() as p:
     ok('hit over action (A)',img(A,'c:c1')=='t-c1-hit',img(A,'c:c1'));ok('hit seen in B',img(B,'c:c1')=='t-c1-hit',img(B,'c:c1'))
     A.wait_for_timeout(1000);B.wait_for_timeout(100)
     ok('back to action motion after hit (A)',img(A,'c:c1')=='t-c1-atk',img(A,'c:c1'));ok('back to action motion (B)',img(B,'c:c1')=='t-c1-atk',img(B,'c:c1'))
-    A.evaluate("()=>{try{if(AF.res?.apply&&!AF.res.applied)actApply()}catch(e){};actFinish()}");A.wait_for_timeout(300)
+    A.evaluate("()=>{try{if(AF.res?.apply&&!AF.res.applied)actApply()}catch(e){};actFinish()}");A.wait_for_timeout(1700)
     # 3. hit spam: 25 drops 60ms apart -> stays hit while hammered, then base; render calls stay bounded
     A.evaluate("()=>{window.__rc=0;const o=window.renderCombat;window.renderCombat=function(){window.__rc++;return o.apply(this,arguments)}}")
     for i in range(25):A.evaluate("()=>{CH.c1.hp-=1;saveC();renderCombat()}");A.wait_for_timeout(60)
@@ -75,13 +77,13 @@ with sync_playwright() as p:
             A.evaluate("id=>{CH[id].hp-=2;saveC();renderCombat()}",cid);A.wait_for_timeout(80)
             if img(A,'c:'+cid)!=f't-{cid}-hit':bad+=1;print('  soak hit',step,cid,img(A,'c:'+cid))
             A.wait_for_timeout(950)
-        A.evaluate("()=>{try{if(AF.res?.apply&&!AF.res.applied)actApply()}catch(e){};try{actFinish()}catch(e){}}");A.wait_for_timeout(120)
+        A.evaluate("()=>{try{if(AF.res?.apply&&!AF.res.applied)actApply()}catch(e){};try{actFinish()}catch(e){}}");A.wait_for_timeout(1650)
         st=A.evaluate("id=>({g:!!CH[id].guard,mo:CH[id].mo?.a||''})",cid);want=f't-{cid}-guard' if (a=='guard' and st['g']) else f't-{cid}-spr'
         if img(A,'c:'+cid)!=want:bad+=1;print('  soak finish',step,cid,a,st,img(A,'c:'+cid))
     ok('random soak 80 steps, 4 heroes',bad==0,bad)
     # 5. stale motion (window closed mid-action) expires; missing art keeps the sprite visible
-    A.evaluate("()=>{for(const k in CH){CH[k].guard=false;delete CH[k].mo}CH.c1.mo={a:'atk',t:Date.now()-60000};saveC();renderCombat()}");A.wait_for_timeout(300)
-    ok('stale motion (60s) ignored',img(A,'c:c1')=='t-c1-spr',img(A,'c:c1'))
+    A.evaluate("()=>{for(const k in CH){CH[k].guard=false;delete CH[k].mo}CH.c1.mo={a:'atk',t:Date.now()-3600000,open:true};saveC();renderCombat()}");A.wait_for_timeout(300)
+    ok('stale motion (1h) ignored',img(A,'c:c1')=='t-c1-spr',img(A,'c:c1'))
     A.evaluate("()=>{CH.c1.motions.atk='no-such-image';saveC();P.combat.acted={};T.open('레온');T.act('atk');AF.targets=[T.k(P.combat.enemies[0].name)];actRoll()}");A.wait_for_timeout(2500)
     vis=A.evaluate("()=>{const im=document.querySelector('#units [data-k=\"c:c1\"] img');return {id:im.dataset.img,w:im.getBoundingClientRect().width,src:(im.currentSrc||'').slice(0,20)}}")
     ok('missing motion art -> hero still visible',vis['w']>5,vis)
