@@ -2969,7 +2969,7 @@ const ASSETS={keys:['fu.chars','fu.play','fu.audio'],pending:new Map(),uploads:n
    if(['portrait','full','sprite','cutin','img','bg','face','faceSrc','art'].includes(field)&&value&&!/^(?:https?:|data:|blob:)/.test(value))out.add(value);
    if(field==='src'&&value.startsWith('idb:'))out.add(value.slice(4));
   }else if(Array.isArray(value))for(const v of value)this.refs(v,out,field);
-  else if(value&&typeof value==='object')for(const[k,v]of Object.entries(value))this.refs(v,out,k);
+  else if(value&&typeof value==='object')for(const[k,v]of Object.entries(value))this.refs(v,out,field==='motions'?'img':k);// battle motions: every value is an image id
   return out;
  },
  saved(){const ids=new Set();for(const k of this.keys)this.refs(LS.get(k,{}),ids);return ids},
