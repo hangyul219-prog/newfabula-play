@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>종이 여행 테스트</title>
+<style>html,body{margin:0;height:100%;background:#222;overflow:hidden;font-family:"Malgun Gothic"}#stage{position:absolute;inset:0}
+#ui{position:fixed;left:10px;top:10px;z-index:5;display:flex;gap:6px;flex-wrap:wrap}#ui button{padding:6px 10px}#ui input{width:260px}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js"}}</script>
+</head><body><div id="stage"></div>
+<div id="ui"><button data-v="over">위에서</button><button data-v="third">3인칭</button><button data-v="first">1인칭</button>
+<button data-t="core">코어</button><button data-t="high">하이</button><button data-t="techno">테크노</button><button data-t="natural">내추럴</button>
+<input id="prog" type="range" min="0" max="1" step="0.01" value="0"><button id="replay">다시 펼치기</button></div>
+<script type="module">
+import { mountTravel } from './travel3d.js';
+const Q = new URLSearchParams(location.search);
+const themes = ['core', 'high', 'techno', 'natural'], assets = {}, sets = {};
+for (const sk of ['metaphor', 'ff', 'octo']) for (const t of themes) { try { const o = await (await fetch(`pieces/${sk}/${t}/outlines.json`)).json(); (sets[sk] ??= {})[t] = {}; for (const [k, v] of Object.entries(o)) sets[sk][t][k] = { img: `pieces/${sk}/${t}/${k}.webp`, ...v }; } catch {} }
+try { if ((await fetch('parchment.webp')).ok) assets.parchment = 'parchment.webp'; } catch {}
+const boards = {}; for (const w of themes) for (const k of ['paper', 'table']) { try { if ((await fetch(`boards/${w}_${k}.webp`)).ok) (boards[w] ??= {})[k] = `boards/${w}_${k}.webp`; } catch {} }
+const T = mountTravel(document.getElementById('stage'), { assets: { sets, parchment: assets.parchment, boards }, theme: Q.get('theme') || 'core', skin: Q.get('skin') || 'metaphor' });
+window.T = T;
+const route = { id: 'r1', pts: [[0.1, 0.56], [0.22, 0.52], [0.34, 0.47], [0.46, 0.44], [0.6, 0.42]], prog: +(Q.get('prog') || 0.35) };
+const data = { img: Q.get('map') || 'testmap.jpg', routes: [route], pins: [
+  { id: 'a', x: 0.1, y: 0.56, name: '리오네 항구', kind: 'town' }, { id: 'b', x: 0.6, y: 0.42, name: '왕도 아스테리아', kind: 'town' },
+  { id: 'c', x: 0.78, y: 0.56, name: '잊힌 신전', kind: 'land' }, { id: 'd', x: 0.55, y: 0.2, name: '검은 동굴', kind: 'dungeon' }, { id: 'e', x: 0.84, y: 0.84, name: '옛 성터', kind: 'land' }] };
+// a hand-placed demo: forests in the green, mountains along the north, desert things in the south-east, every kind once
+const R = (() => { let a = 7; return () => ((a = (a * 16807) % 2147483647) / 2147483647); })();
+const objs = []; let n = 0;
+const put = (k, x, y, s = 1) => objs.push({ id: 'o' + (n++), k, x, y, s });
+for (const [k, x, y] of [['range', .3, .1], ['snowpeak', .45, .08], ['range', .62, .12], ['snowpeak', .8, .1], ['volcano', .93, .2], ['cliff', .25, .22], ['pillar', .7, .66], ['mesa', .8, .72], ['dune', .9, .62], ['dune', .7, .85], ['iceberg', .04, .3], ['hill', .3, .7], ['hill', .5, .62]]) put(k, x, y);
+for (let i = 0; i < 26; i++) put(['pine', 'oak', 'birch', 'grove', 'forest', 'willow', 'giant', 'deadtree'][i % 8], .14 + R() * .2, .08 + R() * .26, .85 + R() * .3);
+for (let i = 0; i < 22; i++) put(['pine', 'oak', 'grove', 'forest', 'birch'][i % 5], .15 + R() * .4, .62 + R() * .3, .85 + R() * .3);
+for (let i = 0; i < 16; i++) put(['bush', 'rocks', 'flowers', 'reeds', 'mushroom', 'log'][i % 6], .14 + R() * .5, .4 + R() * .2, .9 + R() * .2);
+for (const [k, x, y] of [['cactus', .75, .78], ['cactus', .86, .86], ['crystal', .62, .22], ['waterfall', .5, .2], ['palm', .14, .88], ['palm', .12, .8], ['fishing', .12, .38], ['port', .13, .66], ['farm', .3, .6], ['market', .46, .5], ['fortress', .72, .3], ['mtvillage', .4, .26], ['ruinedcastle', .88, .45], ['mine', .58, .16], ['wizardtower', .36, .78], ['graveyard', .5, .76], ['lair', .9, .9], ['labyrinth', .66, .9], ['demoncastle', .95, .35], ['monastery', .7, .14], ['inn', .27, .5], ['gate', .4, .46], ['lighthouse', .08, .5], ['watchtower', .53, .38], ['statue', .66, .5], ['camp', .5, .56], ['worldtree', .22, .9], ['bridge', .26, .32], ['boat', .05, .62], ['signpost', .34, .52], ['portal', .78, .4], ['ship', .04, .78], ['airship', .7, .4], ['city', .82, .3], ['village', .3, .4]]) put(k, x, y);
+data.objs = objs;
+await T.setData(data);
+if (Q.get('view')) T.setView(Q.get('view'));
+document.querySelectorAll('[data-v]').forEach((b) => b.onclick = () => T.setView(b.dataset.v));
+document.querySelectorAll('[data-t]').forEach((b) => b.onclick = () => T.setTheme(b.dataset.t));
+const pr = document.getElementById('prog'); pr.value = route.prog;
+pr.oninput = () => { route.prog = +pr.value; T.setData({ ...data, routes: [{ ...route }] }); };
+document.getElementById('replay').onclick = () => T.replay();
+window.__ready = true;
+</script></body></html>
