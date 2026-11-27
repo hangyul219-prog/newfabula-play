@@ -68,8 +68,8 @@ const HFX={gl:null,cv:null,prog:null,buf:null,loc:{},tex:new Map(),list:[],raf:0
      let alive=t<e.hs+460;
      for(const b of e.bursts){const bt=t-b.at;const Q=b.seq?.ok&&b.seq;
        if(Q){const m=Q.m,dur=m.n*m.ms;if(bt<0){alive=true;continue}if(bt>=dur)continue;alive=true;// drawn frame sheet: plays frame by frame, neighbours cross-faded
-         const fp=bt/m.ms,f=Math.min(m.n-1,Math.floor(fp)),w=fp-f,cw=1/m.c,ch=1/m.r,asp=(Q.im.naturalWidth/m.c)/(Q.im.naturalHeight/m.r),H=b.sz*base*1.35*(.96+.1*bt/dur),Wd=H*asp*(e.seed>3.14?-1:1),rot=(e.seed%1-.5)*.2;
-         const fr=(i,a)=>{if(a<=.01)return;this.quad(Q.t,(cx-box.left)*dpr,(cy-box.top-H*.08)*dpr,Wd*dpr,H*dpr,rot,3,{F:a,B:[(i%m.c)*cw,Math.floor(i/m.c)*ch,cw,ch]})};
+         const fp=bt/m.ms,f=Math.min(m.n-1,Math.floor(fp)),w=fp-f,cw=1/m.c,ch=1/m.r,asp=(Q.im.naturalWidth/m.c)/(Q.im.naturalHeight/m.r),H=b.sz*base*2.4*(.96+.1*bt/dur),Wd=H*asp*(e.seed>3.14?-1:1),rot=(e.seed%1-.5)*.2;
+         const fr=(i,a)=>{if(a<=.01)return;this.quad(Q.t,(cx-box.left)*dpr,(cy-box.top-H*.04)*dpr,Wd*dpr,H*dpr,rot,3,{F:a,B:[(i%m.c)*cw,Math.floor(i/m.c)*ch,cw,ch]})};
          fr(f,f<m.n-1?1-w*.5:1-w);if(f<m.n-1)fr(f+1,w*.5);continue}
        if(bt<0||!b.art?.ok){alive=alive||bt<900;continue}const k=bt/760;if(k>=1)continue;alive=true;
        const ease=1-Math.pow(1-Math.min(1,k*1.9),4),sc=(.5+.6*ease)*b.sz*base,rot=(e.seed-3.14)*.07+(k*.06*e.dir);

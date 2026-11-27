@@ -4144,9 +4144,10 @@ function nextTurn(){const C=P.combat,ac=C.acted;if(C.chain&&!ac[C.chain]&&unitOf
   if(!rp&&!re)return'end';const other=C.first==='pc'?'npc':'pc';let s=(ap+ae)%2===0?C.first:other;if(s==='pc'&&!rp)s='npc';if(s==='npc'&&!re)s='pc';return s}
 /* battle motions: the sheet's 「전투 모션」 art per action; shown from the moment the action fires until it is finished (guard: while guarding) */
 const MO_MAX=45000,MO_HOLD=1500,MOSEEN={},MOPRE=new Set();
-const HITMO={},HIT_MS=900;
+const HITMO={},HIT_MS=1200;
+function moWarm(id){IMG.url(id).then(u=>{if(!u||TRIM.has(id))return;const im=new Image();im.onload=()=>{if(!TRIM.has(id)){const pr=trimCut(im);TRIM.set(id,pr);pr.then(v=>TRIMV.set(id,v))}};im.src=u}).catch(()=>{})}
 /* c.mo={a,t,open}: open from 판정 until 완료 (play tool) or false at once (sheet buttons) */
-function moImg(c){if(c.motions)for(const v of Object.values(c.motions))if(v&&!MOPRE.has(v)){MOPRE.add(v);IMG.url(v).catch?.(()=>{})}// preload so the swap is instant in every window
+function moImg(c){if(c.motions)for(const v of Object.values(c.motions))if(v&&!MOPRE.has(v)){MOPRE.add(v);moWarm(v)}// preload so the swap is instant in every window
   if(c.motions?.hit&&(HITMO['c:'+c.id]||0)>Date.now())return c.motions.hit;const m=c.mo,id=m&&c.motions?.[m.a];if(!id)return'';
   if(m.a==='guard'&&c.guard)return id;const now=Date.now();if(Math.abs(now-(+m.t||0))>600000)return'';// stale leftovers (10 min, skew-tolerant)
   let S=MOSEEN[c.id];if(!S||S.t!==m.t)S=MOSEEN[c.id]={t:m.t,at:now,end:m.open===true?0:now};else if(m.open!==true&&!S.end)S.end=now;
@@ -4286,8 +4287,8 @@ const HFX={gl:null,cv:null,prog:null,buf:null,loc:{},tex:new Map(),list:[],raf:0
      let alive=t<e.hs+460;
      for(const b of e.bursts){const bt=t-b.at;const Q=b.seq?.ok&&b.seq;
        if(Q){const m=Q.m,dur=m.n*m.ms;if(bt<0){alive=true;continue}if(bt>=dur)continue;alive=true;// drawn frame sheet: plays frame by frame, neighbours cross-faded
-         const fp=bt/m.ms,f=Math.min(m.n-1,Math.floor(fp)),w=fp-f,cw=1/m.c,ch=1/m.r,asp=(Q.im.naturalWidth/m.c)/(Q.im.naturalHeight/m.r),H=b.sz*base*1.35*(.96+.1*bt/dur),Wd=H*asp*(e.seed>3.14?-1:1),rot=(e.seed%1-.5)*.2;
-         const fr=(i,a)=>{if(a<=.01)return;this.quad(Q.t,(cx-box.left)*dpr,(cy-box.top-H*.08)*dpr,Wd*dpr,H*dpr,rot,3,{F:a,B:[(i%m.c)*cw,Math.floor(i/m.c)*ch,cw,ch]})};
+         const fp=bt/m.ms,f=Math.min(m.n-1,Math.floor(fp)),w=fp-f,cw=1/m.c,ch=1/m.r,asp=(Q.im.naturalWidth/m.c)/(Q.im.naturalHeight/m.r),H=b.sz*base*2.4*(.96+.1*bt/dur),Wd=H*asp*(e.seed>3.14?-1:1),rot=(e.seed%1-.5)*.2;
+         const fr=(i,a)=>{if(a<=.01)return;this.quad(Q.t,(cx-box.left)*dpr,(cy-box.top-H*.04)*dpr,Wd*dpr,H*dpr,rot,3,{F:a,B:[(i%m.c)*cw,Math.floor(i/m.c)*ch,cw,ch]})};
          fr(f,f<m.n-1?1-w*.5:1-w);if(f<m.n-1)fr(f+1,w*.5);continue}
        if(bt<0||!b.art?.ok){alive=alive||bt<900;continue}const k=bt/760;if(k>=1)continue;alive=true;
        const ease=1-Math.pow(1-Math.min(1,k*1.9),4),sc=(.5+.6*ease)*b.sz*base,rot=(e.seed-3.14)*.07+(k*.06*e.dir);
