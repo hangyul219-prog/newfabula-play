@@ -6119,7 +6119,7 @@ function octOpt(){if(document.documentElement.dataset.theme!=='octo')return;cons
     b.insertAdjacentHTML('beforeend',`<span class="oc-c">${esc(c)}${ic}</span>`);b.dataset.d=[sm,b.dataset.d].filter(Boolean).join('\n')}}
 // the dialogue box plays its entrance only when the speaker changes (class nsp); the same speaker's next line just swaps the text
 let dlgSpk=null;const renderStage1=renderStage;renderStage=function(...a){const r=renderStage1.apply(this,a);const d=document.querySelector('#stagein>.dlg:last-of-type');
-  if(d&&d.dataset.id!==dlgSpk?.id){const w=d.querySelector('.who')?.textContent||'';d.classList.toggle('nsp',!dlgSpk||w!==dlgSpk.w);dlgSpk={id:d.dataset.id,w}}return r};
+  if(d&&d.dataset.id!==dlgSpk?.id){const w=d.querySelector('.who')?.textContent||'';d.classList.toggle('nsp',!dlgSpk||w!==dlgSpk.w);dlgSpk={id:d.dataset.id,w};if(d.classList.contains('nsp'))setTimeout(()=>d.classList.remove('nsp'),700)}/* slide-in done: drop it so the name tag always ends unclipped */return r};
 /*met-dlg-js-end*/
 function whlInit(){WHL.L=null;if(document.documentElement.dataset.theme!=='metaphor'||AF.res||!['cmd','opt'].includes(AF.step))return;
   const on=LS.get('fu.whl',false),ft=$('#modal .actx .foot');// 스크롤 모드: off = the usual button list, untouched
@@ -7203,9 +7203,12 @@ html[data-theme="octo"] #stage.saying #stagein>.dlg:not(#_){bottom:calc(var(--st
 html[data-theme="metaphor"] #stagein>.dlg:not(#_){left:14%!important;right:12%!important;width:auto!important;max-width:none!important;bottom:5%!important;min-height:120px!important;padding:24px 30px 20px 40px!important;border:0 solid transparent!important;border-width:0 80px 0 34px!important;border-image:var(--mtc-box) 0 80 0 34 fill / 0 80px 0 34px stretch!important;background:none!important;box-shadow:none!important;font-family:var(--mtk)!important;font-size:clamp(18px,1.75vw,24px)!important;line-height:1.5!important;overflow:visible!important}
 html[data-theme="metaphor"] #stagein>.dlg:not(#_) .who{display:block!important;position:absolute!important;left:-6px!important;top:-24px!important;right:auto!important;min-width:150px;margin:0!important;padding:4px 70px 5px 24px!important;border:0 solid transparent!important;border-width:0 60px 0 16px!important;border-image:var(--mtc-tag2) 0 60 0 16 fill / 0 60px 0 16px stretch!important;background:none!important;color:#141416!important;font-family:var(--mtk)!important;font-weight:700!important;font-size:clamp(15px,1.3vw,19px)!important;letter-spacing:.02em;text-shadow:none!important;transform:none!important}
 html[data-theme="metaphor"] #stagein>.dlg:not(#_) .who *{color:#141416!important}
+html[data-theme="metaphor"] #stagein>.dlg:not(#_){clip-path:none}/* the theme's input-field rule (.in) also matched the box's .in (slide-in) class and its cut-corner clip hid the name tag above the box whenever the same speaker talked again */
+html[data-theme="metaphor"] #stagein>.dlg:not(#_) .who{white-space:nowrap;max-width:calc(100vw - 40px);overflow:hidden;text-overflow:ellipsis}/* one line: on a phone the narrow box squeezed the name to a letter per line under a stretched tag */
+@media (max-width:640px){html[data-theme="metaphor"] #stagein>.dlg:not(#_){left:4%!important;right:4%!important;padding:20px 8px 14px 18px!important;border-width:0 44px 0 18px!important;border-image:var(--mtc-box) 0 80 0 34 fill / 0 44px 0 18px stretch!important;font-size:16px!important}html[data-theme="metaphor"] #stagein>.dlg:not(#_) .who{min-width:0;left:-4px!important;top:-20px!important;padding:3px 30px 4px 14px!important;border-width:0 34px 0 10px!important;border-image:var(--mtc-tag2) 0 60 0 16 fill / 0 34px 0 10px stretch!important;font-size:14px!important}}
 html[data-theme="metaphor"] #stagein>.dlg:not(#_) #dtext{color:#f4f1ea!important;text-shadow:0 1px 2px rgba(0,0,0,.6)!important;text-align:left!important}
-html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_){animation:mtcBoxIn .3s cubic-bezier(.2,.9,.25,1) both!important}
-html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_) .who{animation:mtcTagIn .28s .1s cubic-bezier(.2,.9,.25,1) both!important}
+html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_){animation:mtcBoxIn .3s cubic-bezier(.2,.9,.25,1) backwards!important}
+html[data-theme="metaphor"] #stagein>.dlg.in.nsp:not(#_) .who{animation:mtcTagIn .28s .1s cubic-bezier(.2,.9,.25,1) backwards!important}/* backwards: once played, no clip is left on the box or the name tag (a kept clip hid the tag on some browsers) */
 html[data-theme="metaphor"] #stagein>.dlg.in:not(.nsp):not(#_),html[data-theme="metaphor"] #stagein>.dlg.in:not(.nsp):not(#_) .who{animation:none!important}
 @keyframes mtcBoxIn{from{translate:-48px 0;opacity:0;clip-path:polygon(0 0,0 0,0 100%,0 100%)}to{translate:0 0;opacity:1;clip-path:polygon(0 -60px,100% -60px,100% 100%,0 100%)}}
 @keyframes mtcTagIn{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
@@ -7243,6 +7246,21 @@ html[data-theme="octo"] .oct-art-empty p{color:var(--parch2)}
 .spr.flying .bob{translate:0 -50%;transition:translate .6s ease-out}.spr.flying .plate{translate:0 calc(var(--sz) * -.5cqh);transition:translate .6s ease-out}.spr.flying .bob>img,.spr.flying .bob>.sil{animation:auFloat 3.4s ease-in-out infinite}.spr.flying .shadow{opacity:.45;scale:.7}.dk-h{flex-wrap:wrap;row-gap:6px}.dk-h>b{white-space:nowrap}.au-body{padding:0 20px}.au-clr{display:flex;gap:8px;align-items:center;margin:4px 0 0;cursor:pointer}.au-rf{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;overflow:hidden;vertical-align:middle;margin-right:8px;background:rgba(255,255,255,.1);font-size:13px}.au-rf img{width:100%;height:100%;object-fit:cover;object-position:50% 12%}.spr .au-arc{position:absolute;left:50%;bottom:14%;height:128%;aspect-ratio:2/3;background:center bottom/contain no-repeat;pointer-events:none;transform:translate(-88%,0);animation:auArcBob 4.4s ease-in-out infinite}@keyframes auArcBob{0%,100%{transform:translate(-88%,0)}50%{transform:translate(-88%,-4%)}}.au-rec{width:100%;border-collapse:collapse;margin:6px 0 10px}.au-rec th,.au-rec td{padding:6px 10px;text-align:right;white-space:nowrap}.au-rec th:first-child,.au-rec td:first-child{text-align:left;white-space:normal}.au-rec thead th{border-bottom:1px solid currentColor}html[data-theme="metaphor"] .actx .act-box:is(#_,*){background:rgba(12,28,30,.93)!important;backdrop-filter:blur(8px)!important}@keyframes auFloat{0%,100%{translate:0 0}50%{translate:0 -6%}}@media (prefers-reduced-motion:reduce){.spr.flying .bob>img,.spr.flying .bob>.sil{animation:none}}
 .au-notes{margin:4px 0 6px;padding-left:18px;font-size:13px;line-height:1.55}.au-ch{flex-wrap:wrap;gap:6px}.au-ch .axt{display:flex;flex-wrap:wrap;gap:4px}.au-opt{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 </style>
+<script id="kb-chat">/* 단축키 (사용자 요청 2026-11-28): Shift+Z 잡담 열고 닫기, Shift+X 대사 기록(로그의 대사 탭) 열고 닫기.
+   Alt+Z / Alt+X 도 같은 일. 글 쓰는 칸에 커서가 있으면 Shift+Z/X는 그냥 글자(Z·X·ㅋ·ㅌ)로 입력되고, Alt 조합만 받음 */
+document.addEventListener('keydown',e=>{
+  if(e.repeat||e.ctrlKey||e.metaKey||(e.code!=='KeyZ'&&e.code!=='KeyX'))return;
+  const ae=document.activeElement,typing=!!ae&&(/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)||ae.isContentEditable);
+  const alt=e.altKey&&!e.shiftKey,sh=e.shiftKey&&!e.altKey&&!typing&&!e.isComposing;if(!alt&&!sh)return;
+  const t=document.getElementById('title');if(t&&t.isConnected&&getComputedStyle(t).display!=='none')return;// 타이틀 화면에선 무시
+  e.preventDefault();e.stopPropagation();
+  const lg=document.querySelector('#modal .lgbox');
+  if(e.code==='KeyZ'){if(lg)$('#modal').innerHTML='';
+    if(showLog&&dtab==='chat'){if(ae?.id==='chatin')ae.blur();showLog=false;LS.set('fu.play.log',false);render();return}
+    showLog=true;LS.set('fu.play.log',true);dtab='chat';try{ss.set('fu.dtab',dtab)}catch{}render();setTimeout(()=>$('#chatin')?.focus(),0);return}
+  if(lg){$('#modal').innerHTML='';return}
+  if(ae&&typing)ae.blur();openLogs('stage')},true);
+</script>
 <style id="tp-css">/*tpaper*/
 .tphost{position:absolute;inset:0;z-index:4;background:#2a241c}
 .tphost canvas{display:block;cursor:grab;touch-action:none}
