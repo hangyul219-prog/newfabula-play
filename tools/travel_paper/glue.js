@@ -1,8 +1,10 @@
 /*tpaper*/
 // 종이 여행 지도: the travel tab's world map as a pop-up paper book (tools/travel_paper). The 2D map stays underneath
 // for the GM's editing (pins, routes); the paper view sits over it, follows the same data, and folds open each time the
-// tab is entered. P.map.paper = the print set every window uses (GM picks it); the camera is each viewer's own.
-const TP={ctl:null,mod:null,host:null,bar:null,pan:null,edit:false,cat:'tree',kind:null,loading:null,wasMap:false,view:'over',
+// tab is entered. P.map.paper = the print set every window uses (GM picks it); the camera is each viewer's own:
+// the view (위에서/3인칭/1인칭) is never sent to the room, and each window remembers its own pick (fu.paper.view).
+const TP={ctl:null,mod:null,host:null,bar:null,pan:null,edit:false,cat:'tree',kind:null,loading:null,wasMap:false,preEdit:null,
+  view:(()=>{try{const v=localStorage.getItem('fu.paper.view');return['over','third','first'].includes(v)?v:'over'}catch{return 'over'}})(),
   on:(()=>{try{return localStorage.getItem('fu.paper')!=='0'}catch{return true}})(),
   NAMES:{core:'코어 룰북',high:'하이 판타지',techno:'테크노 판타지',natural:'내추럴 판타지'}};
 function tpEnsure(){
@@ -10,7 +12,7 @@ function tpEnsure(){
   TP.loading=import('tp/travel3d.js').then(m=>{TP.mod=m;
     const assets=JSON.parse(byId('tpaper-data').textContent);
     TP.host=document.createElement('div');TP.host.className='tphost';
-    TP.ctl=m.mountTravel(TP.host,{assets,theme:P.map.paper||'core',skin:tpSkin(),onView:v=>{TP.view=v;tpBar()},
+    TP.ctl=m.mountTravel(TP.host,{assets,theme:P.map.paper||'core',skin:tpSkin(),view:TP.view,onView:v=>{TP.view=v;if(!TP.edit)try{localStorage.setItem('fu.paper.view',v)}catch{}tpBar()},
       onPick:p=>{V.pop=p.id;renderLoc()},onEdit:tpOnEdit});
     return TP.ctl}).catch(e=>{console.error(e);toast('종이 지도를 불러오지 못했어요 (인터넷 연결 확인)',true);TP.on=false;TP.loading=null;throw e});
   return TP.loading}
@@ -20,7 +22,8 @@ function tpBar(){const w=$('.mapwrap');if(!w||!P.map.img){TP.bar?.remove();retur
       if(a==='on'){TP.on=!TP.on;try{localStorage.setItem('fu.paper',TP.on?'1':'0')}catch{}TP.wasMap=false;renderMap()}
       else if(a==='view')TP.ctl?.setView(b.dataset.v);
       else if(a==='replay')TP.ctl?.replay()
-      else if(a==='edit'&&GM){TP.edit=!TP.edit;TP.ctl?.edit(TP.edit);if(TP.edit){TP.view='over'}tpBar()}});
+      else if(a==='edit'&&GM){TP.edit=!TP.edit;if(TP.edit)TP.preEdit=TP.view;TP.ctl?.edit(TP.edit);if(TP.edit){TP.view='over'}
+        else if(TP.preEdit){const v=TP.preEdit;TP.preEdit=null;TP.ctl?.setView(v)}tpBar()}});
     TP.bar.addEventListener('change',e=>{if(e.target.dataset.tp==='theme'&&GM){P.map.paper=e.target.value;saveP();TP.ctl?.setTheme(P.map.paper)}})}
   const on=tpActive(),th=P.map.paper||'core';
   TP.bar.innerHTML=`<button class="btn${on?' gold':''}" data-tp="on">종이 지도</button>${on?`<span class="tpseg">${[['over','위에서'],['third','3인칭'],['first','1인칭']].map(([v,n])=>`<button class="btn${TP.view===v?' gold':''}" data-tp="view" data-v="${v}">${n}</button>`).join('')}</span>

@@ -334,7 +334,7 @@ export function mountTravel(el, { assets, theme = 'core', skin = 'metaphor', vie
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), _p = new THREE.Vector3(), _l = new THREE.Vector3();
   let camInit = false;
   function camTarget(dt) {
-    const c = S.cam, v = S.view;
+    const c = S.cam, v = S.car ? S.view : 'over';   // a window can open in third/first person before the carriage exists
     if (v === 'over') {
       const pitch = THREE.MathUtils.degToRad(50);
       if (!c.free) { c.tx += (S.party.x - c.tx) * Math.min(1, dt * 2); c.tz += (S.party.z - c.tz) * Math.min(1, dt * 2); }
