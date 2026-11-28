@@ -7247,17 +7247,18 @@ html[data-theme="octo"] .oct-art-empty p{color:var(--parch2)}
 .au-notes{margin:4px 0 6px;padding-left:18px;font-size:13px;line-height:1.55}.au-ch{flex-wrap:wrap;gap:6px}.au-ch .axt{display:flex;flex-wrap:wrap;gap:4px}.au-opt{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 </style>
 <script id="kb-chat">/* 단축키 (사용자 요청 2026-11-28): Shift+Z 잡담 열고 닫기, Shift+X 대사 기록(로그의 대사 탭) 열고 닫기.
-   Alt+Z / Alt+X 도 같은 일. 글 쓰는 칸에 커서가 있으면 Shift+Z/X는 그냥 글자(Z·X·ㅋ·ㅌ)로 입력되고, Alt 조합만 받음 */
+   Alt+Z / Alt+X 도 같은 일. 글 쓰는 칸에 커서가 있으면 Shift+X는 그냥 글자로 입력됨. 단 잡담칸의 Shift+Z는 잡담 닫기(쓰던 글은 다시 열 때 복원) */
 document.addEventListener('keydown',e=>{
   if(e.repeat||e.ctrlKey||e.metaKey||(e.code!=='KeyZ'&&e.code!=='KeyX'))return;
   const ae=document.activeElement,typing=!!ae&&(/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)||ae.isContentEditable);
-  const alt=e.altKey&&!e.shiftKey,sh=e.shiftKey&&!e.altKey&&!typing&&!e.isComposing;if(!alt&&!sh)return;
+  const inChat=e.code==='KeyZ'&&ae?.id==='chatin';// 잡담칸에선 Shift+Z도 닫기(글이 있어도, 한글 조합 중이어도)
+  const alt=e.altKey&&!e.shiftKey,sh=e.shiftKey&&!e.altKey&&(inChat||(!typing&&!e.isComposing));if(!alt&&!sh)return;
   const t=document.getElementById('title');if(t&&t.isConnected&&getComputedStyle(t).display!=='none')return;// 타이틀 화면에선 무시
   e.preventDefault();e.stopPropagation();
   const lg=document.querySelector('#modal .lgbox');
   if(e.code==='KeyZ'){if(lg)$('#modal').innerHTML='';
-    if(showLog&&dtab==='chat'){if(ae?.id==='chatin')ae.blur();showLog=false;LS.set('fu.play.log',false);render();return}
-    showLog=true;LS.set('fu.play.log',true);dtab='chat';try{ss.set('fu.dtab',dtab)}catch{}render();setTimeout(()=>$('#chatin')?.focus(),0);return}
+    if(showLog&&dtab==='chat'){if(ae?.id==='chatin'){window.__chatDraft=ae.value;ae.blur()}showLog=false;LS.set('fu.play.log',false);render();return}
+    showLog=true;LS.set('fu.play.log',true);dtab='chat';try{ss.set('fu.dtab',dtab)}catch{}render();setTimeout(()=>{const c=$('#chatin');if(!c)return;if(window.__chatDraft&&!c.value)c.value=window.__chatDraft;window.__chatDraft='';c.focus()},0);return}
   if(lg){$('#modal').innerHTML='';return}
   if(ae&&typing)ae.blur();openLogs('stage')},true);
 </script>
