@@ -6554,14 +6554,18 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='li
 window.addEventListener('resize',()=>{if(tab==='map'){if(!V.fit)V.fit=fitMap();applyView()}});
 /* live sync between sheet / GM window / player window */
 let pend=false;
-window.addEventListener('storage',e=>{if(e.key==='fu.chat'){if(!(showLog&&dtab==='chat'))unread++;renderDrawer();sayPump();if(tab==='stage')renderStage(true);return}
+// 로그 창이 열려 있어도 새 기록은 로그 끝에 붙이고, 뒤의 화면도 계속 갱신 (사용자 요청 2026-11-28)
+function lgLive(){const el=byId('lgl');if(!el||!$('#modal .lgbox'))return;const A=lgItems(LGV.k),N0=LGV.all.length;if(A.length<N0||A.length>N0&&String(A[N0-1]?.id)!==String(LGV.all[N0-1]?.id))return openLogs(LGV.k);// cleared or trimmed: rebuild
+  if(A.length===N0)return;const end=el.scrollHeight-el.scrollTop-el.clientHeight<40;LGV.all=A;if(!N0)el.innerHTML='';el.insertAdjacentHTML('beforeend',lgChunk(N0,A.length));LGV.n+=A.length-N0;const c=$('#modal .lgtabs .muted');if(c)c.textContent=A.length+'개';if(end)el.scrollTop=el.scrollHeight}
+const mBlock=()=>!!$('#modal').innerHTML&&!$('#modal .lgbox');// other dialogs still pause re-rendering
+window.addEventListener('storage',e=>{if(e.key==='fu.chat'){if(!(showLog&&dtab==='chat'))unread++;renderDrawer();sayPump();if(tab==='stage')renderStage(true);lgLive();return}
   if(!['fu.play','fu.chars','fu.log'].includes(e.key))return;
   if(e.key==='fu.play'&&tab==='combat'&&byId('arena')){const next=loadPlay(LS.get('fu.play',{}));if(battlePositionsOnly(P,next)){P=next;syncBattlePositions();return}}
   const pv0=tab;P=loadPlay(LS.get('fu.play',{}));CH=LS.get('fu.chars',{});migrateAll(CH);if(!GM&&e.key==='fu.play'&&(PV_TABS.includes(P.view)?P.view:'combat')!==pv0)return render();// each window keeps its own tab; the GM's tab never moves players
-  if(e.key==='fu.log'){renderDrawer();return}
-  const a=document.activeElement;if(tab==='stage'&&byId('stage')&&!$('#modal').innerHTML){renderStage(true);return}
-  if(a&&a.matches('input,textarea')&&!$('#modal').innerHTML){if(!pend){pend=true;a.addEventListener('blur',()=>{pend=false;render()},{once:true})}return}
-  if($('#modal').innerHTML)return;
+  lgLive();if(e.key==='fu.log'){renderDrawer();return}
+  const a=document.activeElement;if(tab==='stage'&&byId('stage')&&!mBlock()){renderStage(true);return}
+  if(a&&a.matches('input,textarea')&&!mBlock()){if(!pend){pend=true;a.addEventListener('blur',()=>{pend=false;render()},{once:true})}return}
+  if(mBlock())return;
   render()});
 render();
 </script>
